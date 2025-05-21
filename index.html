@@ -14,8 +14,18 @@
 </head>
 
 <body>
+
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <p class="loading-text" data-translate="loading_text">Loading...</p>
+        <div class="loading-progress-bar-container">
+            <div id="loading-progress-bar" class="loading-progress-bar-inner"></div>
+        </div>
+        <p id="loading-progress-percentage" class="loading-percentage-text">0%</p>
+    </div>
+
     <!-- Main Menu Screen -->
-    <div id="main-menu">
+    <div id="main-menu" style="display: none;">
         <div id="main-menu-content">
             <div id="game-title-wrapper">
                 <h1 data-translate="app_title">SpinShot Fury</h1>
@@ -186,7 +196,8 @@
     <div id="orientation-blocker">
         <div class="orientation-message">
             <p data-translate="orientation_warning_portrait_main">Please rotate your device to portrait mode.</p>
-            <p class="orientation-subtext" data-translate="orientation_warning_portrait_sub">(Please rotate your device to portrait mode)</p>
+            <p class="orientation-subtext" data-translate="orientation_warning_portrait_sub">(Please rotate your device
+                to portrait mode)</p>
         </div>
     </div>
 

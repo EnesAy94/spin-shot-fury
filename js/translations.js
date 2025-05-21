@@ -112,6 +112,7 @@ export const translations = {
         'armory_stats_label': 'Speed: {speed}x | Ammo: {ammo}',
         'orientation_warning_portrait_main': 'Please rotate your device to portrait mode.',
         'orientation_warning_portrait_sub': '(Game is best experienced vertically)',
+        'loading_text': 'Loading...',
     },
     'tr': { // Türkçe
         'app_title': 'SpinShot Fury',
@@ -225,6 +226,7 @@ export const translations = {
         'armory_awm_remaining_many': 'Kalan {remaining} başarımı da açmalısın. ({unlocked}/{total})',
         'orientation_warning_portrait_main': 'Lütfen cihazınızı dikey konuma getirin.',
         'orientation_warning_portrait_sub': '(Oyun en iyi dikey modda deneyimlenir)',
+        'loading_text': 'Yükleniyor...',
     },
     'ru': { // Русский
         'app_title': 'SpinShot Fury',
@@ -338,5 +340,6 @@ export const translations = {
         'armory_awm_remaining_many': 'Откройте оставшиеся {remaining} достижения. ({unlocked}/{total})',
         'orientation_warning_portrait_main': 'Пожалуйста, поверните устройство в портретный режим.',
         'orientation_warning_portrait_sub': '(Игра лучше всего отображается в вертикальном режиме)',
+        'loading_text': 'Загрузка...',
     }
 };
