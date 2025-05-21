@@ -137,7 +137,7 @@ export function createBullet(fireAngle) {
     const centerY = containerHeight / 2;
 
     // Responsive mermi boyutları
-    const bulletWidth = Math.max(8, Math.min(12, containerWidth * 0.015));
+    const bulletWidth = Math.max(5, Math.min(8, containerWidth * 0.015));
     const bulletHeight = bulletWidth;
 
     const bullet = document.createElement('div');
