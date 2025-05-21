@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title data-translate="app_title">SpinShot Fury</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        html {
+            background-color: #222;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Main Menu Screen -->
+    <div id="main-menu">
+        <div id="main-menu-content">
+            <div id="game-title-wrapper">
+                <h1 data-translate="app_title">SpinShot Fury</h1>
+            </div>
+            <div id="menu-high-score-display" class="high-score-text" data-translate="high_score_text">High Score: 0
+            </div>
+            <div class="menu-buttons">
+                <button id="play-button" data-translate="play_button">Play</button>
+                <button id="achievements-button" data-translate="achievements_button">Achievements</button>
+                <button id="how-to-play-button" data-translate="how_to_play_button">How to Play</button>
+                <button id="settings-button" data-translate="settings_button">Settings</button>
+                <button id="armory-button" data-translate="armory_button">Armory</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode Selection Screen -->
+    <div id="mode-select-screen" style="display: none;">
+        <div id="mode-select-content">
+            <h2 data-translate="mode_select_title">Select Game Mode</h2>
+            <div class="mode-buttons">
+                <button id="normal-mode-button" data-mode="normal" data-translate="mode_normal_button">Normal
+                    Mode</button>
+                <button id="random-mode-button" data-mode="random" data-translate="mode_random_button">Random Red
+                    Bottles</button>
+            </div>
+            <button id="mode-select-back-button" data-translate="mode_select_back_button">Back to Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Armory Screen -->
+    <div id="armory-screen" style="display: none;">
+        <div id="armory-content">
+            <h2 data-translate="armory_title">Armory</h2>
+            <div id="armory-progress-info" class="progress-info"></div>
+            <div class="weapon-display">
+                <button id="armory-prev-button" class="nav-arrow">&lt;</button>
+                <div class="weapon-info">
+                    <img id="armory-weapon-image" src="images/revolver.png" alt="Weapon">
+                    <h3 id="armory-weapon-name" data-translate="weapon_revolver_name">Revolver</h3>
+                    <p id="armory-weapon-stats" data-translate="armory_stats_label">Speed: 1x | Ammo: 8</p>
+                    <p id="armory-weapon-desc" data-translate="weapon_revolver_desc">Balanced and reliable.</p>
+                    <div id="armory-lock-status">
+                        <span id="armory-lock-icon" style="display: none;">🔒</span>
+                        <button id="armory-unlock-button" style="display: none;"
+                            data-translate="armory_unlock_button_text">Unlock</button>
+                    </div>
+                    <button id="armory-select-button" data-translate="armory_select_button_text">Select</button>
+                </div>
+                <button id="armory-next-button" class="nav-arrow">&gt;</button>
+            </div>
+            <button id="armory-back-button" data-translate="armory_back_button_text">Back</button>
+        </div>
+    </div>
+
+    <!-- Achievements Screen -->
+    <div id="achievements-screen" style="display: none;">
+        <div id="achievements-content">
+            <h2 data-translate="achievements_title">Achievements</h2>
+            <div id="achievements-list"></div>
+            <button id="achievements-back-button" data-translate="achievements_back_button">Back to Menu</button>
+        </div>
+    </div>
+
+    <!-- How to Play Screen -->
+    <div id="how-to-play-screen" style="display: none;">
+        <div id="how-to-play-content">
+            <h2 data-translate="how_to_play_title">How to Play SpinShot Fury</h2>
+            <div class="instructions">
+                <p data-translate="htp_line1">🎯 Your goal is to shoot all the <span class="green-text">green
+                        bottles</span> in each level before time runs out!</p>
+                <p data-translate="htp_line2">👆 Click or tap (or press SPACEBAR) to shoot when aimed at a bottle.</p>
+                <p data-translate="htp_line3">🔄 The gun spins 360 degrees after each shot.</p>
+                <p data-translate="htp_line4">💥 Hit green bottles consecutively to build your COMBO multiplier for more
+                    points!</p>
+                <p data-translate="htp_line5">❗ Avoid shooting <span class="red-text">red bottles</span>! Hitting one
+                    ends the game.</p>
+                <p data-translate="htp_line6">⏳ Watch the timer! Running out of time or ammo (with green bottles left)
+                    ends the game.</p>
+                <p data-translate="htp_line7">🔫 Unlock new weapons in the Armory to change spin speed and ammo
+                    capacity.</p>
+                <p data-translate="htp_line8">🏆 Earn achievements for special feats!</p>
+                <p data-translate="htp_line9">Good luck, Sharpshooter!</p>
+            </div>
+            <button id="how-to-play-back-button" data-translate="htp_back_button">Back to Menu</button>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" style="display: none;">
+        <div id="settings-content">
+            <h2 data-translate="settings_title">Settings</h2>
+            <div class="settings-section">
+                <h3 data-translate="settings_audio_title">Audio</h3>
+                <div class="setting-item">
+                    <label for="master-volume" data-translate="settings_master_volume">Master Volume:</label>
+                    <input type="range" id="master-volume" min="0" max="1" step="0.05" value="0.5">
+                    <span id="master-volume-value">50%</span>
+                </div>
+                <div class="setting-item">
+                    <label for="music-volume" data-translate="settings_music_volume">Music Volume:</label>
+                    <input type="range" id="music-volume" min="0" max="1" step="0.05" value="0.5">
+                    <span id="music-volume-value">50%</span>
+                </div>
+                <div class="setting-item">
+                    <label for="sfx-volume" data-translate="settings_sfx_volume">Sound Effects Volume:</label>
+                    <input type="range" id="sfx-volume" min="0" max="1" step="0.05" value="0.5">
+                    <span id="sfx-volume-value">50%</span>
+                </div>
+                <div class="setting-item">
+                    <button id="mute-all-button" data-translate="settings_mute_button">Mute All</button>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3 data-translate="settings_language_title">Language</h3>
+                <div class="language-buttons">
+                    <button class="lang-button" data-lang="en" data-translate="settings_lang_en">English</button>
+                    <button class="lang-button" data-lang="tr" data-translate="settings_lang_tr">Türkçe</button>
+                    <button class="lang-button" data-lang="ru" data-translate="settings_lang_ru">Русский</button>
+                </div>
+            </div>
+            <button id="settings-back-button" data-translate="settings_back_button">Back to Menu</button>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div id="game-wrapper" style="display: none;">
+        <div id="game-container">
+            <div id="game-info" data-translate="game_info_default">SpinShot Fury</div>
+            <div id="timer-display" data-translate="timer_display_text">Time: 02:00</div>
+            <div class="circle-bg"></div>
+            <div id="ammo-display"></div>
+            <div id="combo-display" style="display: none;">x1</div>
+            <div id="level-info" data-translate="level_info_text">Level: 1</div>
+            <div id="score" data-translate="score_text">Score: 0</div>
+            <div id="game-high-score-display" class="high-score-text" data-translate="high_score_text">High Score: 0
+            </div>
+            <button id="in-game-exit-button" data-translate="ingame_exit_button">Exit to Menu</button>
+            <div id="gun-container">
+                <div id="gun">
+                    <img id="gun-image" src="images/revolver.png" alt="Pistol">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-complete-screen" style="display: none;">
+        <h2 data-translate="game_complete_congrats">Congratulations!</h2>
+        <p data-translate="game_complete_over">Game is over!</p>
+        <p>
+            <span data-translate="game_complete_final_score_label">Total Score:</span>
+            <span id="final-score">0</span>
+        </p>
+        <div class="button-container">
+            <button id="play-again-button" data-translate="game_complete_play_again">Play Again</button>
+            <button id="exit-button" data-translate="game_complete_exit">Exit</button>
+        </div>
+    </div>
+
+    <!-- Achievement Notification -->
+    <div id="achievement-notification" style="display: none;">
+        <span class="ach-icon">🏆</span>
+        <span class="ach-text" data-translate="achievement_unlocked_popup">Achievement Unlocked!</span>
+        <strong class="ach-name">Achievement Name</strong>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="menu-music" loop preload="auto">
+        <source src="audio/menu.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="game-music" loop preload="auto">
+        <source src="audio/playgame.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Scripts -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
