@@ -17,8 +17,8 @@ export const POINTS_PER_SECOND = 100;
 
 // Game Object Dimensions
 
-export const bottleWidth = 40;
-export const bottleHeight = 80;
+export const bottleWidth = 15;
+export const bottleHeight = 30;
 export const bulletWidth = 10;
 export const bulletHeight = 10;
 
