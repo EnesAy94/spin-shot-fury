@@ -476,7 +476,7 @@ body {
 .bottle {
     position: absolute;
     background-color: transparent;
-    background-image: url('../images/bottle.png');
+    background-image: url('images/bottle.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
