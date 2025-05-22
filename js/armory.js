@@ -42,7 +42,7 @@ function navigateNextWeapon() {
 }
 
 // --- Handle weapon unlocking ---
-function handleUnlockWeapon(event) {
+async function handleUnlockWeapon(event) {
     const weaponId = event.target.dataset.weaponId;
     if (!weaponId) return;
 
@@ -54,7 +54,7 @@ function handleUnlockWeapon(event) {
 
     if (wins >= winsNeeded) {
         state.addUnlockedWeaponId(weaponId);
-        storage.saveUnlockedWeapons(state.getUnlockedWeaponIds());
+        await storage.saveUnlockedWeapons(state.getUnlockedWeaponIds());
 
         if (weaponId === 'glock17') {
             checkAndUnlockAchievement('unlock_weapon_2');

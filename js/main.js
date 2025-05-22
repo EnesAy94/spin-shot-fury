@@ -125,13 +125,15 @@ async function initGame() {
     try {
         ysdkInstance = await YaGames.init();
         console.log('Yandex SDK initialized');
+        storage.setYandexSDK(ysdkInstance);
     } catch (e) {
         console.warn('Yandex SDK initialization failed.', e);
+        storage.setYandexSDK(null);
     }
 
     console.log('All assets supposedly loaded.');
 
-    gameLogic.loadProgressAndInitialize();
+    await gameLogic.loadProgressAndInitialize();
     applyCurrentAudioSettings();
     ui.updateAllTextsForLanguage();
 
@@ -146,16 +148,21 @@ async function initGame() {
     }
     ui.showMainMenu();
 
-    if (ysdkInstance && ysdkInstance.features && ysdkInstance.features.LoadingAPI) {
-        try {
-            await ysdkInstance.features.LoadingAPI.ready();
-            console.log('Yandex SDK LoadingAPI.ready() called successfully.');
-        } catch (error) {
-            console.error('Error calling LoadingAPI.ready():', error);
+    console.log("Attempting to show initial ad after main menu is shown.");
+    await showInterstitialAd(async (adShown) => {
+        console.log("Initial ad closed. Ad shown:", adShown);
+
+        if (ysdkInstance && ysdkInstance.features && ysdkInstance.features.LoadingAPI) {
+            try {
+                await ysdkInstance.features.LoadingAPI.ready();
+                console.log('Yandex SDK LoadingAPI.ready() called successfully after initial ad.');
+            } catch (error) {
+                console.error('Error calling LoadingAPI.ready() after initial ad:', error);
+            }
+        } else {
+            console.warn('Yandex SDK or LoadingAPI feature not available. Skipping LoadingAPI.ready() after initial ad.');
         }
-    } else {
-        console.warn('Yandex SDK or LoadingAPI feature not available. Skipping LoadingAPI.ready().');
-    }
+    });
 }
 
 async function main() {

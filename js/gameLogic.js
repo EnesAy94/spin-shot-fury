@@ -10,7 +10,7 @@ import { rotateGun, applyWeaponStats } from './playerAction.js';
 import { ACHIEVEMENTS, WEAPONS } from './config.js';
 
 // Unlocks an achievement if not already unlocked and updates storage/UI.
-export function checkAndUnlockAchievement(achievementId) {
+export async function checkAndUnlockAchievement(achievementId) {
     if (state.getUnlockedAchievementIds().includes(achievementId)) return false;
 
     const achievement = ACHIEVEMENTS.find(ach => ach.id === achievementId);
@@ -21,7 +21,7 @@ export function checkAndUnlockAchievement(achievementId) {
 
     const unlocked = state.unlockAchievement(achievementId);
     if (unlocked) {
-        storage.saveUnlockedAchievements(state.getUnlockedAchievementIds());
+        await storage.saveUnlockedAchievements(state.getUnlockedAchievementIds());
         ui.showAchievementNotification(achievement.name, achievement.icon);
 
         if (achievementId !== 'achievement_master') {
@@ -78,13 +78,13 @@ export function startGame() {
 }
 
 // Ends the game with a reason and shows game over screen.
-export function gameOver(reason) {
+export async function gameOver(reason) {
     if (state.isGameOver() || state.isGameWon()) return;
 
     state.setGameOver(true);
     if (state.getHasMissedShotInSession() && state.getPerfectGameStreakCount() > 0) {
         state.resetPerfectGameStreakCount();
-        storage.savePerfectGameStreakCount(state.getPerfectGameStreakCount());
+        await storage.savePerfectGameStreakCount(state.getPerfectGameStreakCount());
     }
 
     stopTimer();
@@ -96,7 +96,7 @@ export function gameOver(reason) {
 
     if (state.getScore() > state.getHighScore()) {
         state.setHighScore(state.getScore());
-        storage.saveHighScore(state.getScore());
+        await storage.saveHighScore(state.getScore());
     }
 
     let titleKey = 'game_complete_over';
@@ -116,7 +116,7 @@ export function gameOver(reason) {
 }
 
 // Marks game as won, applies bonuses, and shows victory screen.
-export function gameWon() {
+export async function gameWon() {
     if (state.isGameWon() || state.isGameOver()) return;
 
     state.setGameWon(true);
@@ -124,7 +124,7 @@ export function gameWon() {
 
     const weaponId = state.getSelectedWeaponId();
     state.incrementWinsForWeapon(weaponId);
-    storage.saveWinsData(state.getAllWinsData());
+    await storage.saveWinsData(state.getAllWinsData());
 
     const timeLeft = state.getTimeLeft();
     let score = state.getScore();
@@ -138,7 +138,7 @@ export function gameWon() {
 
     if (finalScore > state.getHighScore()) {
         state.setHighScore(finalScore);
-        storage.saveHighScore(finalScore);
+        await storage.saveHighScore(finalScore);
     }
 
     checkAndUnlockAchievement('game_completed');
@@ -161,13 +161,13 @@ export function gameWon() {
         }
 
         state.incrementPerfectGameStreakCount();
-        storage.savePerfectGameStreakCount(state.getPerfectGameStreakCount());
+        await storage.savePerfectGameStreakCount(state.getPerfectGameStreakCount());
         if (state.getPerfectGameStreakCount() >= 10) {
             checkAndUnlockAchievement('ten_perfect_games');
         }
     } else if (state.getPerfectGameStreakCount() > 0) {
         state.resetPerfectGameStreakCount();
-        storage.savePerfectGameStreakCount(state.getPerfectGameStreakCount());
+        await storage.savePerfectGameStreakCount(state.getPerfectGameStreakCount());
     }
 
     checkMasterAchievement();
@@ -181,7 +181,7 @@ export function gameWon() {
 }
 
 // Checks if all achievements are unlocked to grant master achievement.
-function checkMasterAchievement() {
+async function checkMasterAchievement() {
     const unlockedAchievements = state.getUnlockedAchievementIds();
     const masterAchievementId = 'achievement_master';
 
@@ -197,7 +197,7 @@ function checkMasterAchievement() {
             const awmWeaponId = 'awm';
             if (!state.getUnlockedWeaponIds().includes(awmWeaponId)) {
                 state.addUnlockedWeaponId(awmWeaponId);
-                storage.saveUnlockedWeapons(state.getUnlockedWeaponIds());
+                await storage.saveUnlockedWeapons(state.getUnlockedWeaponIds());
                 if (ui.armoryScreen?.style.display !== 'none') {
                     ui.updateArmoryDisplay();
                 }
@@ -278,19 +278,24 @@ export function resetCombo() {
 }
 
 // Loads saved progress and initializes game state.
-export function loadProgressAndInitialize() {
-    const savedData = storage.loadGameProgress();
+export async function loadProgressAndInitialize() {
+    const savedData = await storage.loadGameProgress();
     state.setWinsData(savedData.winsPerWeapon);
     state.setUnlockedWeaponIds(savedData.unlockedWeaponIds);
     state.setUnlockedAchievements(savedData.unlockedAchievementIds);
     state.setHighScore(savedData.highScore);
     state.setPerfectGameStreakCount(savedData.perfectGameStreakCount || 0);
-
+    state.setMasterVolume(savedData.masterVolume);
+    state.setMusicVolume(savedData.musicVolume);
+    state.setSfxVolume(savedData.sfxVolume);
+    state.setIsMuted(savedData.isMuted);
+    if (savedData.currentLanguage !== state.getCurrentLanguage()) {
+        state.setCurrentLanguage(savedData.currentLanguage);
+    }
     const weaponId = savedData.unlockedWeaponIds.includes(savedData.selectedWeaponId)
         ? savedData.selectedWeaponId
         : config.WEAPONS[0].id;
     state.setSelectedWeaponId(weaponId);
-    storage.saveSelectedWeapon(weaponId);
 
     applyWeaponStats();
 }

@@ -390,7 +390,7 @@ export function setupSettingsListeners() {
         return;
     }
 
-    const saveAudioSettings = () => storage.saveAudioSettings({
+    const saveAudioSettings = async () => await storage.saveAudioSettings({
         masterVolume: state.getMasterVolume(),
         musicVolume: state.getMusicVolume(),
         sfxVolume: state.getSfxVolume(),
@@ -430,11 +430,11 @@ export function setupSettingsListeners() {
     });
 
     langButtons.forEach(button => {
-        button.addEventListener('click', (event) => {
+        button.addEventListener('click', async (event) => {
             const selectedLang = event.target.dataset.lang;
             if (selectedLang && selectedLang !== state.getCurrentLanguage()) {
                 state.setCurrentLanguage(selectedLang);
-                storage.saveLanguage(selectedLang);
+                await storage.saveLanguage(selectedLang);
                 updateAllTextsForLanguage();
             }
         });
