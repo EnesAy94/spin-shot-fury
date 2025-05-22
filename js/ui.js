@@ -52,6 +52,7 @@ export function showMainMenu() {
     howToPlayScreen.style.display = 'none';
     settingsScreen.style.display = 'none';
     modeSelectScreen.style.display = 'none';
+    state.resetLostGamePlayAgainCount();
     hideGameCompleteScreen();
     manageMusic('menu');
     setCursor('default');

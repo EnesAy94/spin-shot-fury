@@ -5,6 +5,38 @@ import * as state from './state.js';
 let audioContext;
 let gunshotBuffer = null;
 let bottleBreakBuffer = null;
+let sfxPausedByAd = false; 
+let musicPausedByAd = false;
+let musicShouldBePlayingType = null;
+
+export function pauseAllAudioForAd() {
+    console.log("Pausing all audio for ad.");
+    musicShouldBePlayingType = activeMusicType; 
+
+    if (activeMusicType && ((activeMusicType === 'menu' && menuMusicEl && !menuMusicEl.paused) || (activeMusicType === 'game' && gameMusicEl && !gameMusicEl.paused))) {
+        manageMusic('stop'); 
+        musicPausedByAd = true;
+    }
+    sfxPausedByAd = true; 
+    if (audioContext && audioContext.state === 'running') {
+        audioContext.suspend().then(() => console.log("AudioContext suspended for ad."));
+    }
+}
+
+export function resumeAllAudioAfterAd() {
+    console.log("Resuming all audio after ad.");
+    if (musicPausedByAd && musicShouldBePlayingType) {
+        manageMusic(musicShouldBePlayingType); 
+        musicPausedByAd = false;
+        musicShouldBePlayingType = null;
+    }
+    sfxPausedByAd = false;
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume().then(() => console.log("AudioContext resumed after ad."));
+    }
+    applyCurrentAudioSettings();
+}
+
 
 function _initAudioContextInternal() {
     if (!audioContext) {
@@ -55,7 +87,7 @@ export async function loadSounds() {
 
 export function playSound(type) {
     ensureAudioContext();
-    if (!audioContext || audioContext.state === 'suspended') return;
+    if (!audioContext || audioContext.state === 'suspended' || sfxPausedByAd) return;
     if (state.getIsMuted()) return;
 
     let buffer = null;

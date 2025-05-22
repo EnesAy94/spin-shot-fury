@@ -7,6 +7,7 @@ import * as state from './state.js';
 import * as storage from './storage.js';
 import * as gameLogic from './gameLogic.js';
 import * as playerAction from './playerAction.js';
+import * as audio from './audio.js';
 import { loadSounds, ensureAudioContext, notifyUserInteractionForMusic, applyCurrentAudioSettings, ensureMusicElementsReady, manageMusic } from './audio.js';
 import { NATIVE_WIDTH, NATIVE_HEIGHT, MENU_NATIVE_WIDTH, MENU_NATIVE_HEIGHT } from './config.js';
 
@@ -69,6 +70,54 @@ async function loadAllAssets() {
     await Promise.all(assetPromises);
 }
 
+async function showInterstitialAd(onAdClosedCallback) {
+    if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showFullscreenAdv !== 'function') {
+        console.warn("Yandex SDK or Adv module/showFullscreenAdv not available. Skipping ad.");
+        if (onAdClosedCallback) onAdClosedCallback(false);
+        return;
+    }
+
+    audio.pauseAllAudioForAd();
+    console.log("Attempting to show Interstitial Ad...");
+
+    try {
+        await new Promise((resolve, reject) => {
+            ysdkInstance.adv.showFullscreenAdv({
+                callbacks: {
+                    onClose: function (wasShown) {
+                        console.log("Interstitial Ad closed. Was shown:", wasShown);
+                        audio.resumeAllAudioAfterAd();
+                        if (onAdClosedCallback) onAdClosedCallback(wasShown);
+                        resolve(wasShown);
+                    },
+                    onError: function (errorData) {
+                        console.error("Interstitial Ad error:", errorData);
+                        audio.resumeAllAudioAfterAd();
+                        if (onAdClosedCallback) onAdClosedCallback(false);
+                        reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
+                    },
+                    onOpen: () => {
+                        console.log("Interstitial Ad opened.");
+
+                    },
+                    onOffline: () => {
+                        console.warn("Interstitial Ad offline. Cannot show ad.");
+                        audio.resumeAllAudioAfterAd();
+                        if (onAdClosedCallback) onAdClosedCallback(false);
+                        resolve(false);
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        console.error("Exception during showFullscreenAdv or its callbacks:", error);
+        if (!audio.sfxPausedByAd && !audio.musicPausedByAd) {
+            audio.resumeAllAudioAfterAd();
+        }
+        if (onAdClosedCallback) onAdClosedCallback(false);
+    }
+}
+
 
 
 // Initializes the game by loading progress, audio, and setting up UI and events.
@@ -97,11 +146,15 @@ async function initGame() {
     }
     ui.showMainMenu();
 
-    if (ysdkInstance && ysdkInstance.features.LoadingAPI) {
-        ysdkInstance.features.LoadingAPI.ready();
-        console.log('LoadingAPI.ready() called');
+    if (ysdkInstance && ysdkInstance.features && ysdkInstance.features.LoadingAPI) {
+        try {
+            await ysdkInstance.features.LoadingAPI.ready();
+            console.log('Yandex SDK LoadingAPI.ready() called successfully.');
+        } catch (error) {
+            console.error('Error calling LoadingAPI.ready():', error);
+        }
     } else {
-        console.warn('Yandex SDK LoadingAPI not available.');
+        console.warn('Yandex SDK or LoadingAPI feature not available. Skipping LoadingAPI.ready().');
     }
 }
 
@@ -136,12 +189,9 @@ function setupEventListeners() {
     window.addEventListener('resize', handleResize);
 
     window.addEventListener('load', () => {
-        // İlk yüklemede şişeleri oluştur
         if (typeof createBottles === 'function') {
             createBottles();
         }
-
-        // Ekran boyutu değiştiğinde şişeleri yeniden konumlandır
         window.addEventListener('resize', () => {
             if (typeof handleResize === 'function') {
                 handleResize();
@@ -177,19 +227,63 @@ function setupEventListeners() {
         const button = document.getElementById(id);
         if (button) button.addEventListener('click', handler);
     });
+
+    const playAgainBtn = document.getElementById('play-again-button');
+    const exitBtn = document.getElementById('exit-button');
+
+    if (playAgainBtn) {
+        playAgainBtn.addEventListener('click', async () => {
+            if (state.isGameWon()) {
+                await showInterstitialAd((adShown) => {
+                    console.log("Ad closed after winning, proceeding to start game. Ad shown:", adShown);
+                    state.resetLostGamePlayAgainCount();
+                    gameLogic.startGame();
+                });
+            } else {
+                if (state.getLostGamePlayAgainCount() >= 1) {
+                    await showInterstitialAd((adShown) => {
+                        console.log("Ad closed after losing (2nd+ try), proceeding to start game. Ad shown:", adShown);
+                        state.incrementLostGamePlayAgainCount();
+                        gameLogic.startGame();
+                    });
+                } else {
+                    console.log("First play again after losing, no ad.");
+                    state.incrementLostGamePlayAgainCount();
+                    gameLogic.startGame();
+                }
+            }
+        });
+    }
+
+    if (exitBtn) {
+        exitBtn.addEventListener('click', async () => {
+            await showInterstitialAd((adShown) => {
+                console.log("Ad closed after game end exit, proceeding to main menu. Ad shown:", adShown);
+                ui.showMainMenu();
+            });
+        });
+    }
+    const inGameExitBtn = document.getElementById('in-game-exit-button');
+    if (inGameExitBtn) {
+        inGameExitBtn.addEventListener('click', handleInGameExit);
+    }
 }
 
 // Handles in-game exit by stopping game loops and showing main menu.
-function handleInGameExit() {
-    state.setGameOver(true);
-    gameLogic.stopTimer();
-    state.setRotating(false);
-    state.setSpinning(false);
-    state.cancelAnimationFrame();
-    state.cancelSpinAnimationFrame();
-    state.clearShotTimeout();
-    manageMusic('menu');
-    ui.showMainMenu();
+async function handleInGameExit() {
+    await showInterstitialAd(async (adShown) => {
+        console.log("Ad closed after in-game exit, proceeding with exit logic. Ad shown:", adShown);
+
+        state.setGameOver(true);
+        gameLogic.stopTimer();
+        state.setRotating(false);
+        state.setSpinning(false);
+        state.cancelAnimationFrame();
+        state.cancelSpinAnimationFrame();
+        state.clearShotTimeout();
+        // manageMusic('menu'); 
+        ui.showMainMenu();
+    });
 }
 
 // Triggers audio context and music on user interaction.

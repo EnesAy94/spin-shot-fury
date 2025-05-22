@@ -37,9 +37,11 @@ let _sfxVolume = 0.5;
 let _isMuted = false;
 let _currentLanguage = 'en';
 let _currentGameMode = 'normal';
+let _lostGamePlayAgainCount = 0;
 
 // Getters
 export function getAllWinsData() { return { ..._winsPerWeapon }; }
+export function getLostGamePlayAgainCount() { return _lostGamePlayAgainCount; }
 export function getWinsForWeapon(weaponId) { return _winsPerWeapon[weaponId] || 0; }
 export function getLevel() { return _level; }
 export function getScore() { return _score; }
@@ -79,6 +81,8 @@ export function getCurrentLanguage() { return _currentLanguage; }
 export function getCurrentGameMode() { return _currentGameMode; }
 
 // Setters and Updaters
+export function incrementLostGamePlayAgainCount() { _lostGamePlayAgainCount++; }
+export function resetLostGamePlayAgainCount() { _lostGamePlayAgainCount = 0; }
 export function setAmmo(count) { _ammoCount = count; }
 export function setLevel(level) { _level = level; }
 export function setScore(score) { _score = score; }
