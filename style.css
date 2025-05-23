@@ -368,29 +368,23 @@ body {
 }
 
 .ammo-icon {
-    /* Viewport genişliğine ve yüksekliğine göre daha dengeli boyutlandırma */
     width: clamp(0.8rem, 2.5vmin, 1.5rem);
     height: clamp(1rem, 3vmin, 2rem);
     
-    /* Diğer stiller */
     transition: opacity 0.3s ease, transform 0.2s ease;
     filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
     
-    /* Ekran küçüldüğünde margin ekleyerek taşmayı önleme */
     margin: 0 0.2rem;
     
-    /* İçerik sığdırma */
     object-fit: contain;
     max-width: 100%;
 }
 
 @media (max-width: 768px) and (orientation: portrait) {
     .ammo-icon {
-        /* Dikey telefonda biraz daha küçük boyut */
         width: clamp(0.7rem, 2vmin, 1.2rem);
         height: clamp(0.9rem, 2.5vmin, 1.5rem);
         
-        /* Daha sıkışık düzen */
         margin: 0 0.05rem;
     }
 }
@@ -504,6 +498,183 @@ body {
     z-index: 2;
     pointer-events: none;
     filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.7));
+}
+
+/* Leaderboard Screen */
+#leaderboard-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(30, 30, 30, 0.98);
+    display: none; 
+    justify-content: center;
+    align-items: center;
+    z-index: 260; 
+    overflow: hidden;
+    padding: clamp(1rem, 3vw, 1.25rem);
+    box-sizing: border-box;
+}
+
+#leaderboard-screen::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(34, 34, 34, 0.5), rgba(0, 0, 0, 0.65)), url('images/Background.png');
+    background-size: cover;
+    background-position: center;
+    filter: blur(8px) brightness(0.4);
+    z-index: -1;
+    transform: scale(1.1);
+}
+
+#leaderboard-content {
+    width: min(50rem, 95%);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transform-origin: center;
+    background: linear-gradient(180deg, rgba(50, 50, 50, 0.95), rgba(30, 30, 30, 0.9));
+    padding: clamp(1.5rem, 3vw, 1.875rem) clamp(1rem, 2vw, 1.5rem); /* Yanlardan padding azaltıldı */
+    border-radius: clamp(1rem, 2vw, 1.25rem);
+    border: 2px solid rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    color: white;
+    overflow-y: auto;
+}
+
+#leaderboard-content h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.75rem, 6vw, 3rem);
+    margin-bottom: clamp(1rem, 3vw, 1.5rem);
+    color: #FFD700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.9), 0 0 5px rgba(0, 0, 0, 0.7);
+    letter-spacing: 2px;
+    animation: glowPulse 2s infinite ease-in-out;
+}
+
+#leaderboard-loading,
+#leaderboard-error {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1rem, 4vw, 1.5rem);
+    color: #FFD700;
+    margin-bottom: clamp(1rem, 3vw, 1.5rem);
+}
+
+#leaderboard-list-container {
+    width: 100%;
+    max-height: 60vh; 
+    overflow-y: auto; 
+    margin-bottom: clamp(1rem, 3vw, 1.5rem);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: clamp(0.5rem, 1vw, 0.5rem);
+    background-color: rgba(0,0,0,0.2);
+}
+
+#leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Arial', sans-serif;
+}
+
+#leaderboard-table th,
+#leaderboard-table td {
+    padding: clamp(0.5rem, 1.5vw, 0.75rem);
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+    font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+}
+
+#leaderboard-table th {
+    background-color: rgba(255, 215, 0, 0.1);
+    color: #FFD700;
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(0.85rem, 3vw, 1.25rem);
+    position: sticky; 
+    top: 0; 
+    z-index: 1;
+}
+
+#leaderboard-table td:nth-child(1) { 
+    text-align: center;
+    font-weight: bold;
+    width: 15%;
+}
+#leaderboard-table td:nth-child(2) {
+    width: 55%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px; 
+}
+#leaderboard-table td:nth-child(3) { 
+    text-align: right;
+    font-weight: bold;
+    color: #90CAF9; 
+    width: 30%;
+}
+
+#leaderboard-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+#leaderboard-player-rank {
+    margin-top: clamp(0.5rem, 2vw, 1rem);
+    margin-bottom: clamp(1rem, 3vw, 1.5rem);
+    padding: clamp(0.5rem, 1.5vw, 0.75rem);
+    background-color: rgba(0,0,0,0.3);
+    border-radius: clamp(0.3rem, 0.8vw, 0.4rem);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    font-size: clamp(0.8rem, 3vw, 1.2rem);
+}
+#player-rank-value, #player-score-value {
+    color: #FFD700;
+    font-weight: bold;
+}
+
+
+#leaderboard-back-button {
+    padding: clamp(0.75rem, 3vw, 0.875rem) clamp(1.5rem, 5vw, 2.5rem);
+    font-size: clamp(0.875rem, 3vw, 1.2rem);
+    font-family: 'Oswald', sans-serif;
+    cursor: pointer;
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    color: white;
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: clamp(0.5rem, 2vw, 0.625rem);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    animation: buttonFadeIn 0.5s ease-out forwards;
+}
+
+#leaderboard-back-button:hover {
+    background: linear-gradient(135deg, #5a6268, #4a545d);
+    border-color: rgba(255, 215, 0, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+}
+
+@media (max-width: 600px) {
+    #leaderboard-content {
+        padding: clamp(1rem, 2vw, 1.25rem) clamp(0.5rem, 1vw, 0.75rem);
+    }
+    #leaderboard-table th,
+    #leaderboard-table td {
+        padding: clamp(0.3rem, 1vw, 0.5rem);
+        font-size: clamp(0.65rem, 2vw, 0.9rem);
+    }
+    #leaderboard-table th {
+        font-size: clamp(0.75rem, 2.5vw, 1.1rem);
+    }
+    #leaderboard-table td:nth-child(2) {
+        max-width: 100px;
+    }
 }
 
 /* Game Over Screen */

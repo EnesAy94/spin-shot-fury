@@ -33,19 +33,18 @@ export function createBottles() {
         return;
     }
 
-    // Responsive ayarlar
+    // Responsive container dimensions
     const gameContainerRect = ui.gameContainer.getBoundingClientRect();
     const containerWidth = gameContainerRect.width;
     const containerHeight = gameContainerRect.height;
-    
-    // Merkez noktasını container boyutuna göre ayarla
+
     const centerX = containerWidth / 2;
     const centerY = containerHeight / 2;
     
-    // Şişe yerleşim yarıçapını container boyutuna göre oranla
+    // Responsive placement radius
     const placementRadius = Math.min(containerWidth, containerHeight) * 0.40;
     
-    // Şişe boyutlarını container boyutuna göre oranla
+    // Responsive bottle dimensions
     const bottleWidth = Math.max(30, Math.min(50, containerWidth * 0.05));
     const bottleHeight = bottleWidth * 2;
 
@@ -82,21 +81,17 @@ export function createBottles() {
     state.setBottles(newBottles);
 }
 
-// Ekran boyutu değiştiğinde şişeleri yeniden konumlandır
 export function handleResize() {
     if (state.getBottles().length > 0) {
-        createBottles(); // Şişeleri yeniden oluştur
+        createBottles(); 
     }
 }
 
-// Sayfa yüklendiğinde ve boyut değiştiğinde dinleyici ekle
 window.addEventListener('load', () => {
-    // İlk yüklemede şişeleri oluştur
     if (typeof createBottles === 'function') {
         createBottles();
     }
     
-    // Ekran boyutu değiştiğinde şişeleri yeniden konumlandır
     window.addEventListener('resize', () => {
         if (typeof handleResize === 'function') {
             handleResize();
@@ -169,7 +164,6 @@ export function createBullet(fireAngle) {
         bullet.style.left = `${x - bulletWidth / 2}px`;
         bullet.style.top = `${y - bulletHeight / 2}px`;
 
-        // Sınır kontrollerini container boyutuna göre yap
         const isOutOfBounds = x < -bulletWidth ||
             x > containerWidth + bulletWidth ||
             y < -bulletHeight ||

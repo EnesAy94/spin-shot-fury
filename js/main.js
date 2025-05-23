@@ -209,12 +209,14 @@ function setupEventListeners() {
 
     const buttons = {
         'play-button': ui.showModeSelectScreen,
+        'leaderboard-button': ui.showLeaderboardScreen,
         'how-to-play-button': ui.showHowToPlayScreen,
         'settings-button': ui.showSettingsScreen,
         'armory-button': ui.showArmoryScreen,
         'achievements-button': ui.showAchievementsScreen,
         'play-again-button': gameLogic.startGame,
         'exit-button': ui.showMainMenu,
+        'leaderboard-back-button': ui.showMainMenu,
         'achievements-back-button': ui.showMainMenu,
         'how-to-play-back-button': ui.showMainMenu,
         'settings-back-button': ui.showMainMenu,
@@ -232,7 +234,10 @@ function setupEventListeners() {
 
     Object.entries(buttons).forEach(([id, handler]) => {
         const button = document.getElementById(id);
-        if (button) button.addEventListener('click', handler);
+        if (button) button.addEventListener('click', () => {
+              handleUserInteraction(); 
+                handler();
+            });
     });
 
     const playAgainBtn = document.getElementById('play-again-button');

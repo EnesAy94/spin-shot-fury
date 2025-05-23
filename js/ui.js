@@ -30,6 +30,14 @@ export const finalScoreEl = document.getElementById('final-score');
 export const comboDisplayEl = document.getElementById('combo-display');
 export const gunImageEl = document.getElementById('gun-image');
 export const modeSelectScreen = document.getElementById('mode-select-screen');
+export const leaderboardScreen = document.getElementById('leaderboard-screen');
+const leaderboardContent = document.getElementById('leaderboard-content');
+const leaderboardLoadingEl = document.getElementById('leaderboard-loading');
+const leaderboardErrorEl = document.getElementById('leaderboard-error');
+const leaderboardEntriesEl = document.getElementById('leaderboard-entries');
+const leaderboardPlayerRankEl = document.getElementById('leaderboard-player-rank');
+const playerRankValueEl = document.getElementById('player-rank-value');
+const playerScoreValueEl = document.getElementById('player-score-value');
 const achievementNotificationIconEl = achievementNotificationEl?.querySelector('.ach-icon');
 const achievementNotificationNameEl = achievementNotificationEl?.querySelector('.ach-name');
 const masterVolumeSlider = document.getElementById('master-volume');
@@ -44,6 +52,22 @@ const gameCompleteTitle = gameCompleteScreen?.querySelector('h2');
 const gameCompleteText = gameCompleteScreen?.querySelector('p:nth-of-type(1)');
 
 // Screen Transitions
+export function showLeaderboardScreen() {
+    mainMenuElement.style.display = 'none';
+    gameWrapper.style.display = 'none';
+    armoryScreen.style.display = 'none';
+    achievementsScreen.style.display = 'none';
+    howToPlayScreen.style.display = 'none';
+    settingsScreen.style.display = 'none';
+    modeSelectScreen.style.display = 'none';
+    hideGameCompleteScreen();
+
+    if (leaderboardScreen) leaderboardScreen.style.display = 'flex';
+    manageMusic('menu');
+    setCursor('default');
+    loadAndDisplayLeaderboard();
+}
+
 export function showMainMenu() {
     mainMenuElement.style.display = 'flex';
     gameWrapper.style.display = 'none';
@@ -52,6 +76,7 @@ export function showMainMenu() {
     howToPlayScreen.style.display = 'none';
     settingsScreen.style.display = 'none';
     modeSelectScreen.style.display = 'none';
+    leaderboardScreen.style.display = 'none';
     state.resetLostGamePlayAgainCount();
     hideGameCompleteScreen();
     manageMusic('menu');
@@ -135,16 +160,16 @@ export function showGameCompleteScreen(titleKey, textKey, finalScore, additional
     settingsScreen.style.display = 'none';
     modeSelectScreen.style.display = 'none';
     gameCompleteScreen.style.display = 'flex';
-    
+
     if (gameCompleteTitle) gameCompleteTitle.textContent = getText(titleKey);
     if (gameCompleteText) gameCompleteText.textContent = getText(textKey, additionalTextParams);
     if (finalScoreEl) finalScoreEl.textContent = finalScore;
-    
+
     const playAgainBtn = document.getElementById('play-again-button');
     const exitBtn = document.getElementById('exit-button');
     if (playAgainBtn) playAgainBtn.textContent = getText('game_complete_play_again');
     if (exitBtn) exitBtn.textContent = getText('game_complete_exit');
-    
+
     manageMusic('menu');
     setCursor('default');
 }
@@ -171,6 +196,74 @@ export function hideModeSelectScreen() {
 }
 
 // UI Updates
+async function loadAndDisplayLeaderboard() {
+    if (!leaderboardEntriesEl || !leaderboardLoadingEl || !leaderboardErrorEl || !leaderboardPlayerRankEl) {
+        console.error("Leaderboard UI elements not found.");
+        return;
+    }
+
+    leaderboardLoadingEl.style.display = 'block';
+    leaderboardErrorEl.style.display = 'none';
+    leaderboardEntriesEl.innerHTML = ''; 
+    leaderboardPlayerRankEl.style.display = 'none';
+
+    const ysdk = storage.getYSDKInstance(); // 
+    if (!ysdk || !ysdk.getLeaderboards) {
+        leaderboardLoadingEl.style.display = 'none';
+        leaderboardErrorEl.style.display = 'block';
+        leaderboardErrorEl.textContent = getText('leaderboard_error_text') + " (SDK not available)";
+        console.warn("Yandex SDK or Leaderboards module not available for fetching leaderboard.");
+        return;
+    }
+
+    try {
+        const leaderboardName = 'highScoresTable';
+        const res = await ysdk.getLeaderboards().getLeaderboardEntries(leaderboardName, {
+            includeUser: true, 
+            quantityAround: 2, //If player doesn't have a rank, show 2 entries around the top
+            quantityTop: 50 //How many top-ranked people should be displayed?
+        });
+
+        leaderboardLoadingEl.style.display = 'none';
+
+        if (res && res.entries && res.entries.length > 0) {
+            res.entries.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${entry.rank}</td>
+                    <td>${entry.player.publicName || getText('leaderboard_player') + ' ' + entry.rank}</td>
+                    <td>${entry.score}</td>
+                `;
+                leaderboardEntriesEl.appendChild(tr);
+            });
+        } else {
+            leaderboardEntriesEl.innerHTML = `<tr><td colspan="3">${getText('leaderboard_error_text')} (No entries)</td></tr>`;
+        }
+
+        const userEntry = res.userRank ? res.entries.find(e => e.rank === res.userRank) : null;
+        if (res.userRank && userEntry) {
+            playerRankValueEl.textContent = res.userRank;
+            playerScoreValueEl.textContent = userEntry.score;
+            leaderboardPlayerRankEl.style.display = 'block';
+        } else {
+            const localHighScore = state.getHighScore();
+            if (localHighScore > 0) {
+                playerRankValueEl.textContent = getText('N/A'); 
+                playerScoreValueEl.textContent = localHighScore;
+                leaderboardPlayerRankEl.style.display = 'block';
+            } else {
+                leaderboardPlayerRankEl.style.display = 'none';
+            }
+        }
+
+    } catch (error) {
+        console.error("Failed to fetch leaderboard entries:", error);
+        leaderboardLoadingEl.style.display = 'none';
+        leaderboardErrorEl.style.display = 'block';
+        leaderboardErrorEl.textContent = getText('leaderboard_error_text');
+    }
+}
+
 export function updateUI() {
     if (levelInfoEl) levelInfoEl.textContent = getText('level_info_text', { level: state.getLevel() });
     if (scoreEl) scoreEl.textContent = getText('score_text', { score: state.getScore() });
