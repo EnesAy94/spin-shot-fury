@@ -118,7 +118,66 @@ async function showInterstitialAd(onAdClosedCallback) {
     }
 }
 
+/**
+ * @param {function} onRewarded Callback function called if the ad is watched successfully.
+ * @param {function} [onClose] Callback function called when the ad is closed, regardless of success.
+ * @param {function} [onError] Callback function called if an error occurs.
+ */
+export async function showRewardedVideoAd(onRewarded, onClose, onError) {
+        console.log("showRewardedVideoAd CALLED. ysdkInstance available:", !!ysdkInstance);
+    if (ysdkInstance && ysdkInstance.adv) {
+        console.log("ysdkInstance.adv available. showRewardedVideo is function:", typeof ysdkInstance.adv.showRewardedVideo === 'function');
+    }
+    if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showRewardedVideo !== 'function') {
+        console.warn("Yandex SDK or Rewarded Video module/showRewardedVideo not available. Skipping ad.");
+        if (onError) onError("SDK not available");
+        if (onClose) onClose(false); 
+        return;
+    }
 
+    audio.pauseAllAudioForAd(); // Reklam için sesi duraklat
+    console.log("Attempting to show Rewarded Video Ad...");
+
+    //ui.showAdLoadingIndicator(true); 
+
+    try {
+        await new Promise((resolve, reject) => {
+            ysdkInstance.adv.showRewardedVideo({
+                callbacks: {
+                    onOpen: () => {
+                        console.log('Rewarded video ad opened.');
+                    },
+                    onRewarded: () => {
+                        console.log('Rewarded video ad: User was rewarded!');
+                        if (onRewarded) onRewarded();
+                    },
+                    onClose: (wasShown) => {
+                        console.log('Rewarded video ad closed. Was shown:', wasShown);
+                        audio.resumeAllAudioAfterAd();
+                        //ui.showAdLoadingIndicator(false);
+                        if (onClose) onClose(wasShown);
+                        resolve(wasShown);
+                    },
+                    onError: (errorData) => {
+                        console.error('Rewarded video ad error:', errorData);
+                        audio.resumeAllAudioAfterAd();
+                        //ui.showAdLoadingIndicator(false);
+                        if (onError) onError(errorData);
+                        if (onClose) onClose(false);
+                        reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData))); 
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        console.error("Exception during showRewardedVideo or its callbacks:", error);
+        if (!audio.sfxPausedByAd && !audio.musicPausedByAd) {
+            audio.resumeAllAudioAfterAd();
+        }
+        //ui.showAdLoadingIndicator(false);
+        if (onClose) onClose(false);
+    }
+}
 
 // Initializes the game by loading progress, audio, and setting up UI and events.
 async function initGame() {

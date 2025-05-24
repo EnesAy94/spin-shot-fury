@@ -4,7 +4,7 @@ let _ysdk = null;
 export function setYandexSDK(ysdk) {
     _ysdk = ysdk;
 }
-export function getYSDKInstance() { 
+export function getYSDKInstance() {
     return _ysdk;
 }
 
@@ -106,18 +106,32 @@ export async function saveUnlockedAchievements(achievementIds) {
 
 export async function saveHighScore(newHighScore) {
     const localSaveSuccess = await updateAndSave('highScore', newHighScore);
+    const leaderboardName = 'highScoresTable'; // <<< KONSOLDAKİ TEKNİK İSMİNİZLE DEĞİŞTİRİN
 
-    if (_ysdk && _ysdk.getLeaderboards) {
+    if (_ysdk && typeof _ysdk.getLeaderboards === 'function') { // getLeaderboards'ın bir fonksiyon olduğunu kontrol et
         try {
-            console.log(`Attempting to set score ${newHighScore} to leaderboard.`);
-            const leaderboardName = 'highScoresTable';
-            await _ysdk.getLeaderboards().setLeaderboardScore(leaderboardName, newHighScore);
-            console.log(`Score ${newHighScore} successfully set to leaderboard '${leaderboardName}'.`);
+            // 1. Lider tablosu yönetici nesnesini al (Bu genellikle senkrondur)
+            const leaderboardsManager = _ysdk.getLeaderboards();
+
+            // leaderboardsManager üzerinde doğru metodun varlığını kontrol edebilirsiniz (opsiyonel)
+            if (typeof leaderboardsManager.setScore === 'function') {
+                console.log(`Attempting to set score ${newHighScore} to leaderboard '${leaderboardName}' using setScore.`);
+                // 2. Skoru ayarla (Bu asenkron bir işlemdir, Promise döndürür)
+                await leaderboardsManager.setScore(leaderboardName, newHighScore);
+                console.log(`Score ${newHighScore} successfully set to leaderboard '${leaderboardName}'.`);
+            } else if (typeof leaderboardsManager.setLeaderboardScore === 'function') {
+                // Eğer setScore yoksa, setLeaderboardScore'u dene (eski API veya farklı bir yapı olabilir)
+                console.log(`Attempting to set score ${newHighScore} to leaderboard '${leaderboardName}' using setLeaderboardScore.`);
+                await leaderboardsManager.setLeaderboardScore(leaderboardName, newHighScore);
+                console.log(`Score ${newHighScore} successfully set to leaderboard '${leaderboardName}'.`);
+            } else {
+                console.error('Neither setScore nor setLeaderboardScore method found on leaderboards manager object.', leaderboardsManager);
+            }
         } catch (error) {
             console.error(`Failed to set score on leaderboard '${leaderboardName}':`, error);
         }
     } else {
-        console.warn('Yandex SDK Leaderboards module not available. Score not sent to leaderboard.');
+        console.warn('Yandex SDK Leaderboards module or getLeaderboards function not available.');
     }
     return localSaveSuccess;
 }

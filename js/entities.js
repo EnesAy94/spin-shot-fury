@@ -2,8 +2,10 @@
 // Manages game entities (bottles, bullets, particles) including creation, movement, and collision detection.
 
 import * as state from './state.js';
+import * as main from './main.js';
 import * as config from './config.js';
 import * as ui from './ui.js';
+import * as gameLogic from './gameLogic.js';
 import { playSound } from './audio.js';
 import { resetCombo, checkLevelComplete, gameOver, checkAndUnlockAchievement } from './gameLogic.js';
 
@@ -40,10 +42,10 @@ export function createBottles() {
 
     const centerX = containerWidth / 2;
     const centerY = containerHeight / 2;
-    
+
     // Responsive placement radius
     const placementRadius = Math.min(containerWidth, containerHeight) * 0.40;
-    
+
     // Responsive bottle dimensions
     const bottleWidth = Math.max(30, Math.min(50, containerWidth * 0.05));
     const bottleHeight = bottleWidth * 2;
@@ -83,7 +85,7 @@ export function createBottles() {
 
 export function handleResize() {
     if (state.getBottles().length > 0) {
-        createBottles(); 
+        createBottles();
     }
 }
 
@@ -91,7 +93,7 @@ window.addEventListener('load', () => {
     if (typeof createBottles === 'function') {
         createBottles();
     }
-    
+
     window.addEventListener('resize', () => {
         if (typeof handleResize === 'function') {
             handleResize();
@@ -183,11 +185,60 @@ export function createBullet(fireAngle) {
             if (state.getAmmoCount() <= 0 && !state.isGameOver() && !state.isGameWon()) {
                 const greenBottlesLeft = state.getBottles().some(b => b.type === 'green' && !b.hit);
                 if (greenBottlesLeft) {
-                    setTimeout(() => {
-                        if (!state.isGameOver() && !state.isGameWon()) {
-                            gameOver('no_ammo');
-                        }
-                    }, 10);
+                    if (!state.hasUsedAmmoRewardThisGame()) {
+                        gameLogic.pauseGameForAd();
+
+                        ui.showConfirmationModal(
+                            'confirm_ammo_reward_title',
+                            'confirm_ammo_reward_message',
+                            () => {
+                                console.log("entities.js: YES callback triggered. Calling main.showRewardedVideoAd");
+                                main.showRewardedVideoAd(
+                                    () => {
+                                        console.log("Ammo reward granted.");
+                                        state.setAmmo(state.getAmmoCount() + 3);
+                                        state.setUsedAmmoRewardThisGame(true);
+                                        ui.updateAmmoDisplay();
+                                        gameLogic.resumeGameAfterAd(true);
+                                    },
+                                    (wasShown) => { // Reklam kapandı
+                                        console.log("Ammo reward ad closed. Was shown:", wasShown);
+                                        const rewarded = state.hasUsedAmmoRewardThisGame(); // Ödül alındı mı kontrol et
+                                        if (!rewarded && state.getAmmoCount() <= 0 && state.getBottles().some(b => b.type === 'green' && !b.hit)) {
+                                            console.log("Ad not rewarded, no ammo, green bottles left. Game Over.");
+                                            gameOver('no_ammo');
+                                        } else if (rewarded || state.getAmmoCount() > 0) {
+                                            // Eğer ödül alındıysa veya zaten mermi varsa ve oyun bitmediyse devam et
+                                            if (!state.isGameOver() && !state.isGameWon()) {
+                                                gameLogic.resumeGameAfterAd(rewarded);
+                                            }
+                                        }
+                                    },
+                                    (error) => { // Reklam hatası
+                                        console.error("Ammo reward ad error:", error);
+                                        // Hata durumunda, eğer hala mermi yoksa ve yeşil şişe varsa oyunu bitir.
+                                        if (state.getAmmoCount() <= 0 && state.getBottles().some(b => b.type === 'green' && !b.hit)) {
+                                            console.log("Ad error, no ammo, green bottles left. Game Over.");
+                                            gameOver('no_ammo');
+                                        } else if (!state.isGameOver() && !state.isGameWon()) {
+                                            gameLogic.resumeGameAfterAd(false); // Oyunu devam ettir ama ödül yok
+                                        }
+                                    }
+                                );
+                            },
+                            () => {
+                                console.log("entities.js: NO callback triggered. Calling gameOver.");
+                                console.log("User declined ammo reward ad.");
+                                gameOver('no_ammo');
+                            }
+                        );
+                    } else {
+                        setTimeout(() => {
+                            if (!state.isGameOver() && !state.isGameWon()) {
+                                gameOver('no_ammo');
+                            }
+                        }, 10);
+                    }
                 }
             }
             return;

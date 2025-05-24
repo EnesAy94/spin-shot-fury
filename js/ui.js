@@ -3,6 +3,7 @@
 
 import * as state from './state.js';
 import * as storage from './storage.js';
+import * as gameLogic from './gameLogic.js';
 import { translations } from './translations.js';
 import { WEAPONS, formatTime, ACHIEVEMENTS } from './config.js';
 import { manageMusic, applyCurrentAudioSettings } from './audio.js';
@@ -31,6 +32,11 @@ export const comboDisplayEl = document.getElementById('combo-display');
 export const gunImageEl = document.getElementById('gun-image');
 export const modeSelectScreen = document.getElementById('mode-select-screen');
 export const leaderboardScreen = document.getElementById('leaderboard-screen');
+export const confirmationModalEl = document.getElementById('confirmation-modal');
+const confirmationTitleEl = document.getElementById('confirmation-title');
+const confirmationMessageEl = document.getElementById('confirmation-message');
+const confirmYesButton = document.getElementById('confirm-yes-button');
+const confirmNoButton = document.getElementById('confirm-no-button');
 const leaderboardContent = document.getElementById('leaderboard-content');
 const leaderboardLoadingEl = document.getElementById('leaderboard-loading');
 const leaderboardErrorEl = document.getElementById('leaderboard-error');
@@ -51,7 +57,72 @@ const langButtons = document.querySelectorAll('.language-buttons .lang-button');
 const gameCompleteTitle = gameCompleteScreen?.querySelector('h2');
 const gameCompleteText = gameCompleteScreen?.querySelector('p:nth-of-type(1)');
 
+let currentConfirmCallback = null;
+let currentCancelCallback = null;
+
 // Screen Transitions
+
+/**
+ * @param {string} titleKey Çeviri anahtarı (başlık için)
+ * @param {string} messageKey Çeviri anahtarı (mesaj için)
+ * @param {function} onConfirm "Evet" tıklandığında çağrılacak fonksiyon.
+ * @param {function} [onCancel] "Hayır" tıklandığında veya modal kapatıldığında çağrılacak fonksiyon.
+ */
+
+export function showConfirmationModal(titleKey, messageKey, onConfirm, onCancel) {
+    console.log("showConfirmationModal CALLED with title:", titleKey, "message:", messageKey); // FONKSİYONA GİRİLİYOR MU?
+    if (!confirmationModalEl || !confirmationTitleEl || !confirmationMessageEl || !confirmYesButton || !confirmNoButton) { // Butonları da kontrol et
+        console.error("Confirmation modal UI elements missing!");
+        return;
+    }
+
+    confirmationTitleEl.textContent = getText(titleKey);
+    confirmationMessageEl.textContent = getText(messageKey);
+    if (confirmYesButton) confirmYesButton.textContent = getText('confirm_button_yes'); // Buton metinleri
+    if (confirmNoButton) confirmNoButton.textContent = getText('confirm_button_no');   // Buton metinleri
+
+    currentConfirmCallback = onConfirm;     // Callback'ler doğru atanıyor mu?
+    currentCancelCallback = onCancel;
+
+    // gameLogic.pauseGameForAd(); // entities.js'de çağrılıyor, burada tekrar çağırmaya gerek yok gibi
+    // ama oyunun genelini duraklatmak için burada da mantıklı olabilir.
+    // Şimdilik entities.js'deki çağrıya güvenelim.
+
+    confirmationModalEl.style.display = 'flex';
+    console.log("Confirmation modal displayed. Waiting for button click.");
+
+    // ÖNEMLİ: Olay dinleyicilerini her seferinde yeniden ata
+    // Bu, eski dinleyicilerin birikmesini önler ve her zaman en güncel callback'leri kullanır.
+    confirmYesButton.onclick = () => {
+        console.log("YES button clicked in modal."); // LOG EKLE
+        hideConfirmationModal();
+        if (currentConfirmCallback) {
+            console.log("Executing onConfirm callback."); // LOG EKLE
+            currentConfirmCallback();
+        } else {
+            console.log("No onConfirm callback to execute.");
+        }
+    };
+
+    confirmNoButton.onclick = () => {
+        console.log("NO button clicked in modal."); // LOG EKLE
+        hideConfirmationModal();
+        if (currentCancelCallback) {
+            console.log("Executing onCancel callback."); // LOG EKLE
+            currentCancelCallback();
+        } else {
+            console.log("No onCancel callback to execute.");
+        }
+    };
+}
+
+export function hideConfirmationModal() {
+    console.log("hideConfirmationModal CALLED.");
+    if (confirmationModalEl) confirmationModalEl.style.display = 'none';
+    //gameLogic.pauseGame(false);
+    gameLogic.startTimer();
+}
+
 export function showLeaderboardScreen() {
     mainMenuElement.style.display = 'none';
     gameWrapper.style.display = 'none';
@@ -204,60 +275,80 @@ async function loadAndDisplayLeaderboard() {
 
     leaderboardLoadingEl.style.display = 'block';
     leaderboardErrorEl.style.display = 'none';
-    leaderboardEntriesEl.innerHTML = ''; 
+    leaderboardEntriesEl.innerHTML = '';
     leaderboardPlayerRankEl.style.display = 'none';
 
-    const ysdk = storage.getYSDKInstance(); // 
-    if (!ysdk || !ysdk.getLeaderboards) {
+    const ysdk = storage.getYSDKInstance();
+    console.log("YSDK instance in ui.js:", ysdk);
+    if (!ysdk || typeof ysdk.getLeaderboards !== 'function') {
         leaderboardLoadingEl.style.display = 'none';
         leaderboardErrorEl.style.display = 'block';
-        leaderboardErrorEl.textContent = getText('leaderboard_error_text') + " (SDK not available)";
-        console.warn("Yandex SDK or Leaderboards module not available for fetching leaderboard.");
+        leaderboardErrorEl.textContent = getText('leaderboard_error_text') + " (SDK or getLeaderboards function not available)";
+        console.warn("Yandex SDK or getLeaderboards function not available for fetching leaderboard.");
         return;
     }
 
     try {
-        const leaderboardName = 'highScoresTable';
-        const res = await ysdk.getLeaderboards().getLeaderboardEntries(leaderboardName, {
-            includeUser: true, 
-            quantityAround: 2, //If player doesn't have a rank, show 2 entries around the top
-            quantityTop: 50 //How many top-ranked people should be displayed?
-        });
+        const leaderboardName = 'highScoresTable'; // <<< KONSOLDAKİ İSİMLE AYNI OLMALI
 
-        leaderboardLoadingEl.style.display = 'none';
+        // 1. Lider tablosu yönetici nesnesini ALMAK İÇİN PROMISE'I BEKLE
+        console.log("Attempting to await ysdk.getLeaderboards()...");
+        const leaderboardsManager = await ysdk.getLeaderboards(); // <<< DEĞİŞİKLİK BURADA!
+        console.log("Leaderboards Manager Object (after await):", leaderboardsManager);
 
-        if (res && res.entries && res.entries.length > 0) {
-            res.entries.forEach(entry => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${entry.rank}</td>
-                    <td>${entry.player.publicName || getText('leaderboard_player') + ' ' + entry.rank}</td>
-                    <td>${entry.score}</td>
-                `;
-                leaderboardEntriesEl.appendChild(tr);
+        // 2. leaderboardsManager üzerinde getLeaderboardEntries metodunun varlığını kontrol et
+        if (leaderboardsManager && typeof leaderboardsManager.getLeaderboardEntries === 'function') { // leaderboardsManager'ın null/undefined olmadığını da kontrol et
+            console.log(`Attempting to fetch entries from leaderboard '${leaderboardName}'.`);
+            // 3. Lider tablosu girişlerini al (Bu asenkron bir işlemdir, Promise döndürür)
+            const res = await leaderboardsManager.getLeaderboardEntries(leaderboardName, {
+                includeUser: true,
+                quantityAround: 5,
+                quantityTop: 10
             });
-        } else {
-            leaderboardEntriesEl.innerHTML = `<tr><td colspan="3">${getText('leaderboard_error_text')} (No entries)</td></tr>`;
-        }
 
-        const userEntry = res.userRank ? res.entries.find(e => e.rank === res.userRank) : null;
-        if (res.userRank && userEntry) {
-            playerRankValueEl.textContent = res.userRank;
-            playerScoreValueEl.textContent = userEntry.score;
-            leaderboardPlayerRankEl.style.display = 'block';
-        } else {
-            const localHighScore = state.getHighScore();
-            if (localHighScore > 0) {
-                playerRankValueEl.textContent = getText('N/A'); 
-                playerScoreValueEl.textContent = localHighScore;
+            leaderboardLoadingEl.style.display = 'none';
+
+            // ... (Geri kalan veri işleme ve gösterme kısmı aynı) ...
+            if (res && res.entries && res.entries.length > 0) {
+                leaderboardEntriesEl.innerHTML = '';
+                res.entries.forEach(entry => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${entry.rank}</td>
+                        <td>${entry.player.publicName || getText('leaderboard_player') + ' ' + entry.rank}</td>
+                        <td>${entry.score}</td>
+                    `;
+                    leaderboardEntriesEl.appendChild(tr);
+                });
+            } else {
+                leaderboardEntriesEl.innerHTML = `<tr><td colspan="3">${getText('leaderboard_error_text')} (No entries)</td></tr>`;
+            }
+
+            const userEntry = res.userRank ? res.entries.find(e => e.rank === res.userRank) : null;
+            if (res.userRank && userEntry) {
+                playerRankValueEl.textContent = res.userRank;
+                playerScoreValueEl.textContent = userEntry.score;
                 leaderboardPlayerRankEl.style.display = 'block';
             } else {
-                leaderboardPlayerRankEl.style.display = 'none';
+                const localHighScore = state.getHighScore();
+                if (localHighScore > 0) {
+                    playerRankValueEl.textContent = getText('N/A');
+                    playerScoreValueEl.textContent = localHighScore;
+                    leaderboardPlayerRankEl.style.display = 'block';
+                } else {
+                    leaderboardPlayerRankEl.style.display = 'none';
+                }
             }
+
+        } else {
+            console.error('getLeaderboardEntries method not found on the resolved leaderboards manager object, or manager is null/undefined.', leaderboardsManager);
+            leaderboardLoadingEl.style.display = 'none';
+            leaderboardErrorEl.style.display = 'block';
+            leaderboardErrorEl.textContent = getText('leaderboard_error_text') + " (SDK method missing on manager)";
         }
 
     } catch (error) {
-        console.error("Failed to fetch leaderboard entries:", error);
+        console.error("Failed to fetch leaderboard entries or resolve leaderboards manager:", error);
         leaderboardLoadingEl.style.display = 'none';
         leaderboardErrorEl.style.display = 'block';
         leaderboardErrorEl.textContent = getText('leaderboard_error_text');

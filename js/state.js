@@ -38,9 +38,12 @@ let _isMuted = false;
 let _currentLanguage = 'en';
 let _currentGameMode = 'normal';
 let _lostGamePlayAgainCount = 0;
+let _usedAmmoRewardThisGame = false;
+let _usedRedBottleRewardThisGame = false;
 
 // Getters
 export function getAllWinsData() { return { ..._winsPerWeapon }; }
+export function hasUsedAmmoRewardThisGame() { return _usedAmmoRewardThisGame; }
 export function getLostGamePlayAgainCount() { return _lostGamePlayAgainCount; }
 export function getWinsForWeapon(weaponId) { return _winsPerWeapon[weaponId] || 0; }
 export function getLevel() { return _level; }
@@ -82,6 +85,7 @@ export function getCurrentGameMode() { return _currentGameMode; }
 
 // Setters and Updaters
 export function incrementLostGamePlayAgainCount() { _lostGamePlayAgainCount++; }
+export function setUsedAmmoRewardThisGame(value) { _usedAmmoRewardThisGame = value; }
 export function resetLostGamePlayAgainCount() { _lostGamePlayAgainCount = 0; }
 export function setAmmo(count) { _ammoCount = count; }
 export function setLevel(level) { _level = level; }
@@ -186,6 +190,7 @@ export function setAnimationFrameId(id) { _animationFrameId = id; }
 export function cancelAnimationFrame() {
     if (_animationFrameId) {
         window.cancelAnimationFrame(_animationFrameId);
+        console.log("Canceled animation frame with ID:", _animationFrameId); // LOG EKLE
         _animationFrameId = null;
     }
 }

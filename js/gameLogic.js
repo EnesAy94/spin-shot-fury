@@ -46,6 +46,7 @@ export function resetGame() {
     state.setCurrentRotation(0);
     state.setTimeLeft(config.TIME_LIMIT_SECONDS);
     state.setHasMissedShotInSession(false);
+    state.setUsedAmmoRewardThisGame(false);
 
     stopTimer();
     state.clearShotTimeout();
@@ -298,4 +299,49 @@ export async function loadProgressAndInitialize() {
     state.setSelectedWeaponId(weaponId);
 
     applyWeaponStats();
+}
+
+export function pauseGameForAd() {
+    console.log("Pausing game for ad opportunity.");
+    stopTimer();
+    state.setRotating(false);
+    state.setCanFire(false);
+    state.cancelAnimationFrame();
+    state.cancelSpinAnimationFrame();
+    console.log("Game paused. New animID after cancel:", state.getAnimationFrameId());
+}
+
+export function resumeGameAfterAd(rewardGranted = true) {
+    console.log("Resuming game after ad. Reward granted:", rewardGranted);
+    if (state.isGameOver() || state.isGameWon()) {
+        console.log("Game already over or won, not resuming normal play.");
+        return;
+    }
+
+    const greenBottlesLeft = state.getBottles().some(b => b.type === 'green' && !b.hit);
+
+    if (state.getAmmoCount() > 0 && greenBottlesLeft) {
+        // Mermi var ve hala vurulacak yeşil şişe var
+        console.log("Resuming normal play: ammo > 0 and green bottles left.");
+        state.setRotating(true);
+        state.setCanFire(true); // Ateş etmeye tekrar izin ver
+        startTimer(); // Zamanlayıcıyı yeniden başlat (eğer durdurulduysa ve gerekliyse)
+        if (!state.getAnimationFrameId()) { // Sadece aktif bir animasyon döngüsü yoksa başlat
+            console.log("No active animation frame, calling rotateGun from resumeGameAfterAd.");
+            rotateGun();
+        } else {
+            console.log("Animation frame already active, NOT calling rotateGun from resumeGameAfterAd.");
+        }
+    } else if (state.getAmmoCount() <= 0 && greenBottlesLeft) {
+        // Mermi yok ama hala yeşil şişe var (Reklam izlenmedi veya ödül alınmadı)
+        console.log("No ammo, but green bottles left. Ending game.");
+        gameOver('no_ammo');
+    } else if (!greenBottlesLeft) {
+        // Yeşil şişe kalmamış, seviye tamamlandı veya oyun kazanıldı
+        console.log("No green bottles left. Checking level complete.");
+        checkLevelComplete(); // Bu zaten gameWon veya sonraki seviyeyi tetikler
+    } else {
+        console.log("Unhandled resume case. Ammo:", state.getAmmoCount(), "Green bottles left:", greenBottlesLeft);
+    }
+    console.log("Speed AFTER resume logic:", state.getRotationSpeed());
 }
