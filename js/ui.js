@@ -2,6 +2,8 @@
 // Manages UI updates, screen transitions, and translations.
 
 import * as state from './state.js';
+import * as armory from './armory.js';
+import * as main from './main.js';
 import * as storage from './storage.js';
 import * as gameLogic from './gameLogic.js';
 import { translations } from './translations.js';
@@ -61,65 +63,34 @@ let currentConfirmCallback = null;
 let currentCancelCallback = null;
 
 // Screen Transitions
-
-/**
- * @param {string} titleKey Çeviri anahtarı (başlık için)
- * @param {string} messageKey Çeviri anahtarı (mesaj için)
- * @param {function} onConfirm "Evet" tıklandığında çağrılacak fonksiyon.
- * @param {function} [onCancel] "Hayır" tıklandığında veya modal kapatıldığında çağrılacak fonksiyon.
- */
-
-export function showConfirmationModal(titleKey, messageKey, onConfirm, onCancel) {
-    console.log("showConfirmationModal CALLED with title:", titleKey, "message:", messageKey); // FONKSİYONA GİRİLİYOR MU?
-    if (!confirmationModalEl || !confirmationTitleEl || !confirmationMessageEl || !confirmYesButton || !confirmNoButton) { // Butonları da kontrol et
-        console.error("Confirmation modal UI elements missing!");
+export function showConfirmationModal(titleKey, messageKey, onConfirm, onCancel, messageParams) {
+    if (!confirmationModalEl || !confirmationTitleEl || !confirmationMessageEl || !confirmYesButton || !confirmNoButton) {
         return;
     }
 
     confirmationTitleEl.textContent = getText(titleKey);
-    confirmationMessageEl.textContent = getText(messageKey);
-    if (confirmYesButton) confirmYesButton.textContent = getText('confirm_button_yes'); // Buton metinleri
-    if (confirmNoButton) confirmNoButton.textContent = getText('confirm_button_no');   // Buton metinleri
+    confirmationMessageEl.textContent = getText(messageKey, messageParams);
+    confirmYesButton.textContent = getText('confirm_button_yes');
+    confirmNoButton.textContent = getText('confirm_button_no');
 
-    currentConfirmCallback = onConfirm;     // Callback'ler doğru atanıyor mu?
+    currentConfirmCallback = onConfirm;
     currentCancelCallback = onCancel;
 
-    // gameLogic.pauseGameForAd(); // entities.js'de çağrılıyor, burada tekrar çağırmaya gerek yok gibi
-    // ama oyunun genelini duraklatmak için burada da mantıklı olabilir.
-    // Şimdilik entities.js'deki çağrıya güvenelim.
-
     confirmationModalEl.style.display = 'flex';
-    console.log("Confirmation modal displayed. Waiting for button click.");
 
-    // ÖNEMLİ: Olay dinleyicilerini her seferinde yeniden ata
-    // Bu, eski dinleyicilerin birikmesini önler ve her zaman en güncel callback'leri kullanır.
     confirmYesButton.onclick = () => {
-        console.log("YES button clicked in modal."); // LOG EKLE
         hideConfirmationModal();
-        if (currentConfirmCallback) {
-            console.log("Executing onConfirm callback."); // LOG EKLE
-            currentConfirmCallback();
-        } else {
-            console.log("No onConfirm callback to execute.");
-        }
+        if (currentConfirmCallback) currentConfirmCallback();
     };
 
     confirmNoButton.onclick = () => {
-        console.log("NO button clicked in modal."); // LOG EKLE
         hideConfirmationModal();
-        if (currentCancelCallback) {
-            console.log("Executing onCancel callback."); // LOG EKLE
-            currentCancelCallback();
-        } else {
-            console.log("No onCancel callback to execute.");
-        }
+        if (currentCancelCallback) currentCancelCallback();
     };
 }
 
 export function hideConfirmationModal() {
-    console.log("hideConfirmationModal CALLED.");
     if (confirmationModalEl) confirmationModalEl.style.display = 'none';
-    //gameLogic.pauseGame(false);
     gameLogic.startTimer();
 }
 
@@ -132,7 +103,6 @@ export function showLeaderboardScreen() {
     settingsScreen.style.display = 'none';
     modeSelectScreen.style.display = 'none';
     hideGameCompleteScreen();
-
     if (leaderboardScreen) leaderboardScreen.style.display = 'flex';
     manageMusic('menu');
     setCursor('default');
@@ -269,7 +239,6 @@ export function hideModeSelectScreen() {
 // UI Updates
 async function loadAndDisplayLeaderboard() {
     if (!leaderboardEntriesEl || !leaderboardLoadingEl || !leaderboardErrorEl || !leaderboardPlayerRankEl) {
-        console.error("Leaderboard UI elements not found.");
         return;
     }
 
@@ -279,76 +248,57 @@ async function loadAndDisplayLeaderboard() {
     leaderboardPlayerRankEl.style.display = 'none';
 
     const ysdk = storage.getYSDKInstance();
-    console.log("YSDK instance in ui.js:", ysdk);
-    if (!ysdk || typeof ysdk.getLeaderboards !== 'function') {
+    if (!ysdk?.getLeaderboards) {
         leaderboardLoadingEl.style.display = 'none';
         leaderboardErrorEl.style.display = 'block';
-        leaderboardErrorEl.textContent = getText('leaderboard_error_text') + " (SDK or getLeaderboards function not available)";
-        console.warn("Yandex SDK or getLeaderboards function not available for fetching leaderboard.");
+        leaderboardErrorEl.textContent = getText('leaderboard_error_text');
         return;
     }
 
     try {
-        const leaderboardName = 'highScoresTable'; // <<< KONSOLDAKİ İSİMLE AYNI OLMALI
-
-        // 1. Lider tablosu yönetici nesnesini ALMAK İÇİN PROMISE'I BEKLE
-        console.log("Attempting to await ysdk.getLeaderboards()...");
-        const leaderboardsManager = await ysdk.getLeaderboards(); // <<< DEĞİŞİKLİK BURADA!
-        console.log("Leaderboards Manager Object (after await):", leaderboardsManager);
-
-        // 2. leaderboardsManager üzerinde getLeaderboardEntries metodunun varlığını kontrol et
-        if (leaderboardsManager && typeof leaderboardsManager.getLeaderboardEntries === 'function') { // leaderboardsManager'ın null/undefined olmadığını da kontrol et
-            console.log(`Attempting to fetch entries from leaderboard '${leaderboardName}'.`);
-            // 3. Lider tablosu girişlerini al (Bu asenkron bir işlemdir, Promise döndürür)
-            const res = await leaderboardsManager.getLeaderboardEntries(leaderboardName, {
-                includeUser: true,
-                quantityAround: 5,
-                quantityTop: 10
-            });
-
-            leaderboardLoadingEl.style.display = 'none';
-
-            // ... (Geri kalan veri işleme ve gösterme kısmı aynı) ...
-            if (res && res.entries && res.entries.length > 0) {
-                leaderboardEntriesEl.innerHTML = '';
-                res.entries.forEach(entry => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${entry.rank}</td>
-                        <td>${entry.player.publicName || getText('leaderboard_player') + ' ' + entry.rank}</td>
-                        <td>${entry.score}</td>
-                    `;
-                    leaderboardEntriesEl.appendChild(tr);
-                });
-            } else {
-                leaderboardEntriesEl.innerHTML = `<tr><td colspan="3">${getText('leaderboard_error_text')} (No entries)</td></tr>`;
-            }
-
-            const userEntry = res.userRank ? res.entries.find(e => e.rank === res.userRank) : null;
-            if (res.userRank && userEntry) {
-                playerRankValueEl.textContent = res.userRank;
-                playerScoreValueEl.textContent = userEntry.score;
-                leaderboardPlayerRankEl.style.display = 'block';
-            } else {
-                const localHighScore = state.getHighScore();
-                if (localHighScore > 0) {
-                    playerRankValueEl.textContent = getText('N/A');
-                    playerScoreValueEl.textContent = localHighScore;
-                    leaderboardPlayerRankEl.style.display = 'block';
-                } else {
-                    leaderboardPlayerRankEl.style.display = 'none';
-                }
-            }
-
-        } else {
-            console.error('getLeaderboardEntries method not found on the resolved leaderboards manager object, or manager is null/undefined.', leaderboardsManager);
-            leaderboardLoadingEl.style.display = 'none';
-            leaderboardErrorEl.style.display = 'block';
-            leaderboardErrorEl.textContent = getText('leaderboard_error_text') + " (SDK method missing on manager)";
+        const leaderboardName = 'highScoresTable'; // Replace with actual leaderboard name
+        const leaderboardsManager = await ysdk.getLeaderboards();
+        if (!leaderboardsManager?.getLeaderboardEntries) {
+            throw new Error('getLeaderboardEntries method missing');
         }
 
+        const res = await leaderboardsManager.getLeaderboardEntries(leaderboardName, {
+            includeUser: true,
+            quantityAround: 5,
+            quantityTop: 10
+        });
+
+        leaderboardLoadingEl.style.display = 'none';
+
+        if (res?.entries?.length > 0) {
+            leaderboardEntriesEl.innerHTML = '';
+            res.entries.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${entry.rank}</td>
+                    <td>${entry.player.publicName || getText('leaderboard_player') + ' ' + entry.rank}</td>
+                    <td>${entry.score}</td>
+                `;
+                leaderboardEntriesEl.appendChild(tr);
+            });
+        } else {
+            leaderboardEntriesEl.innerHTML = `<tr><td colspan="3">${getText('leaderboard_error_text')} (No entries)</td></tr>`;
+        }
+
+        const userEntry = res.userRank ? res.entries.find(e => e.rank === res.userRank) : null;
+        if (res.userRank && userEntry) {
+            playerRankValueEl.textContent = res.userRank;
+            playerScoreValueEl.textContent = userEntry.score;
+            leaderboardPlayerRankEl.style.display = 'block';
+        } else {
+            const localHighScore = state.getHighScore();
+            if (localHighScore > 0) {
+                playerRankValueEl.textContent = getText('N/A');
+                playerScoreValueEl.textContent = localHighScore;
+                leaderboardPlayerRankEl.style.display = 'block';
+            }
+        }
     } catch (error) {
-        console.error("Failed to fetch leaderboard entries or resolve leaderboards manager:", error);
         leaderboardLoadingEl.style.display = 'none';
         leaderboardErrorEl.style.display = 'block';
         leaderboardErrorEl.textContent = getText('leaderboard_error_text');
@@ -396,8 +346,6 @@ export function updateComboDisplay() {
 export function updateGunImage(imageSrc) {
     if (gunImageEl) {
         gunImageEl.src = imageSrc;
-    } else {
-        console.error('Gun image element not found.');
     }
 }
 
@@ -426,7 +374,6 @@ export function updateArmoryDisplay() {
     const weaponData = WEAPONS[currentWeaponIndex];
 
     if (!weaponData) {
-        console.error('Invalid weapon index:', currentWeaponIndex);
         return;
     }
 
@@ -440,9 +387,9 @@ export function updateArmoryDisplay() {
     const selectBtnEl = document.getElementById('armory-select-button');
     const backBtnEl = document.getElementById('armory-back-button');
     const progressInfoEl = document.getElementById('armory-progress-info');
+    const tryWeaponBtnEl = document.getElementById('armory-try-weapon-button');
 
     if (!imgEl || !nameEl || !statsEl || !descEl || !lockIconEl || !unlockBtnEl || !selectBtnEl || !progressInfoEl || !armoryTitleEl || !backBtnEl) {
-        console.error('Armory UI elements missing.');
         return;
     }
 
@@ -507,8 +454,9 @@ export function updateArmoryDisplay() {
         unlockBtnEl.textContent = getText('armory_unlock_button_text');
     }
 
-    selectBtnEl.style.display = isUnlocked ? 'block' : 'none';
-    if (isUnlocked) {
+    const isTrialActiveForThisWeapon = state.isTrialWeaponActive() && state.getTrialWeaponId() === weaponData.id;
+    selectBtnEl.style.display = isUnlocked || isTrialActiveForThisWeapon ? 'block' : 'none';
+    if (isUnlocked || isTrialActiveForThisWeapon) {
         const isSelected = weaponData.id === selectedWeaponId;
         selectBtnEl.disabled = isSelected;
         selectBtnEl.textContent = isSelected ? getText('armory_selected_button_text') : getText('armory_select_button_text');
@@ -519,11 +467,21 @@ export function updateArmoryDisplay() {
     const nextBtn = document.getElementById('armory-next-button');
     if (prevBtn) prevBtn.disabled = currentWeaponIndex === 0;
     if (nextBtn) nextBtn.disabled = currentWeaponIndex === WEAPONS.length - 1;
+
+    const isAwm = weaponData.id === 'awm';
+    const isDefaultWeapon = weaponData.unlockWins === 0 && !weaponData.unlocksWith;
+    if (!isUnlocked && !isAwm && !isDefaultWeapon) {
+        tryWeaponBtnEl.style.display = 'block';
+        tryWeaponBtnEl.dataset.weaponId = weaponData.id;
+        tryWeaponBtnEl.dataset.weaponName = nameEl.textContent;
+        tryWeaponBtnEl.onclick = () => armory.handleTryWeaponWithAd(tryWeaponBtnEl.dataset.weaponId, tryWeaponBtnEl.dataset.weaponName);
+    } else {
+        tryWeaponBtnEl.style.display = 'none';
+    }
 }
 
 export function populateAchievementsList() {
     if (!achievementsListEl) {
-        console.error('Achievements list element not found.');
         return;
     }
 
@@ -570,7 +528,6 @@ export function populateAchievementsList() {
 
 export function setupSettingsListeners() {
     if (!masterVolumeSlider) {
-        console.warn('Settings UI elements not found.');
         return;
     }
 
@@ -631,7 +588,6 @@ let currentAchievementTimeoutId = null;
 
 export function showAchievementNotification(name, icon = '🏆', duration = 3000) {
     if (!achievementNotificationEl || !achievementNotificationNameEl || !achievementNotificationIconEl) {
-        console.error('Achievement notification UI elements not found.');
         return;
     }
 

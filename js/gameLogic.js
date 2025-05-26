@@ -48,6 +48,7 @@ export function resetGame() {
     state.setHasMissedShotInSession(false);
     state.setUsedAmmoRewardThisGame(false);
     state.setUsedRedBottleRewardThisGame(false);
+    state.clearActiveTrialOnNewGame();
 
     stopTimer();
     state.clearShotTimeout();
@@ -57,13 +58,12 @@ export function resetGame() {
     ui.updateGameInfo('SpinShot Fury');
     ui.hideGameCompleteScreen();
     ui.setGunRotation(0);
+    applyWeaponStats();
+    state.setRotating(true);
     ui.updateUI();
     ui.updateTimerDisplay();
     ui.updateComboDisplay();
-
-    applyWeaponStats();
     createBottles();
-    state.setRotating(true);
     state.setSpinning(false);
     state.setCanFire(true);
 }
@@ -74,9 +74,11 @@ export function startGame() {
     ui.hideMainMenuAndShowGame();
     ui.hideModeSelectScreen();
     resetGame();
-    rotateGun();
     startTimer();
     ui.setCursor('crosshair');
+    if (state.isRotating() && !state.getAnimationFrameId()) {
+        rotateGun();
+    }
 }
 
 // Ends the game with a reason and shows game over screen.
@@ -114,6 +116,7 @@ export async function gameOver(reason) {
         textKey = 'game_over_reason_no_ammo_desc';
     }
 
+    state.clearFullTrialWeaponState();
     ui.showGameCompleteScreen(titleKey, textKey, state.getScore());
 }
 
@@ -173,7 +176,7 @@ export async function gameWon() {
     }
 
     checkMasterAchievement();
-
+    state.clearFullTrialWeaponState();
     state.setRotating(false);
     ui.showGameCompleteScreen(
         'Congratulations!',
@@ -194,7 +197,7 @@ async function checkMasterAchievement() {
         .map(ach => ach.id);
 
     if (otherAchievementIds.every(id => unlockedAchievements.includes(id))) {
-        const unlockedMaster = checkAndUnlockAchievement(masterAchievementId);
+        const unlockedMaster = await checkAndUnlockAchievement(masterAchievementId);
         if (unlockedMaster) {
             const awmWeaponId = 'awm';
             if (!state.getUnlockedWeaponIds().includes(awmWeaponId)) {
@@ -291,9 +294,11 @@ export async function loadProgressAndInitialize() {
     state.setMusicVolume(savedData.musicVolume);
     state.setSfxVolume(savedData.sfxVolume);
     state.setIsMuted(savedData.isMuted);
+    
     if (savedData.currentLanguage !== state.getCurrentLanguage()) {
         state.setCurrentLanguage(savedData.currentLanguage);
     }
+    
     const weaponId = savedData.unlockedWeaponIds.includes(savedData.selectedWeaponId)
         ? savedData.selectedWeaponId
         : config.WEAPONS[0].id;
@@ -302,47 +307,38 @@ export async function loadProgressAndInitialize() {
     applyWeaponStats();
 }
 
+// Pauses game for ad opportunity, stopping timer and animations.
 export function pauseGameForAd() {
-    console.log("Pausing game for ad opportunity.");
     stopTimer();
     state.setRotating(false);
     state.setCanFire(false);
+    state.setSpinning(false);
     state.cancelAnimationFrame();
     state.cancelSpinAnimationFrame();
-    console.log("Game paused. New animID after cancel:", state.getAnimationFrameId());
 }
 
+// Resumes game after ad, handling game state based on ammo and bottles.
 export function resumeGameAfterAd(rewardGranted = true) {
-    console.log("Resuming game after ad. Reward granted:", rewardGranted, "Current speed:", state.getRotationSpeed());
-    if (state.isGameOver() || state.isGameWon()) {
-        console.log("Game already over or won, not resuming normal play.");
-        return;
-    }
+    if (state.isGameOver() || state.isGameWon()) return;
+
+    state.cancelAnimationFrame();
+    state.cancelSpinAnimationFrame();
 
     const greenBottlesLeft = state.getBottles().some(b => b.type === 'green' && !b.hit);
     const ammoAvailable = state.getAmmoCount() > 0;
 
     if (ammoAvailable && greenBottlesLeft) {
-        console.log("Resuming normal play: ammo available and green bottles left.");
         state.setRotating(true);
         state.setCanFire(true);
         startTimer();
         if (!state.getAnimationFrameId()) {
-            console.log("No active animation frame, calling rotateGun from resumeGameAfterAd.");
             rotateGun();
-        } else {
-            console.log("Animation frame already active, NOT calling rotateGun from resumeGameAfterAd.");
         }
     } else if (!ammoAvailable && greenBottlesLeft) {
-        console.log("No ammo, but green bottles left. Ending game.");
         gameOver('no_ammo');
     } else if (!greenBottlesLeft) {
-        console.log("No green bottles left. Checking level complete.");
         checkLevelComplete();
     } else {
-        console.log("Unexpected resume case. Ammo:", state.getAmmoCount(), "Green bottles left:", greenBottlesLeft);
-        if (!ammoAvailable || !greenBottlesLeft) {
-            gameOver('unknown_resume_issue'); 
-        }
+        gameOver('unknown_resume_issue');
     }
 }

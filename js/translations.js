@@ -1,6 +1,10 @@
 // js/translations.js
 export const translations = {
     'en': { // English
+        'weapon_trial_activated_message': '{weaponName} is ready for trial this game!',
+        'armory_try_weapon_button': 'Try for 1 Game (Ad)',
+        'confirm_try_weapon_title': 'Try Weapon?',
+        'confirm_try_weapon_message': 'Watch an ad to try the {weaponName} for one game?',
         'confirm_red_bottle_title': 'Red Bottle Hit!',
         'confirm_red_bottle_message': 'Watch an ad to continue playing this level? (Once per game)',
         'confirm_ammo_reward_title': 'Out of Ammo!',
@@ -131,6 +135,9 @@ export const translations = {
         'loading_text': 'Loading...',
     },
     'tr': { // Türkçe
+        'armory_try_weapon_button': '1 Oyun Dene (Reklam)',
+        'confirm_try_weapon_title': 'Silahı Denemek İster misin?',
+        'confirm_try_weapon_message': '{weaponName} silahını bir oyunluğuna denemek için reklam izlemek ister misin?',
         'confirm_red_bottle_title': 'Kırmızı Şişe Vuruldu!',
         'confirm_red_bottle_message': 'Bu seviyeye devam etmek için reklam izlemek ister misin? (Oyun başına bir kez)',
         'confirm_ammo_reward_title': 'Mermi Bitti!',
@@ -156,6 +163,7 @@ export const translations = {
         'leaderboard_score_colon': 'Skor:',
         'high_score_text': 'Yüksek Skor: {score}',
         'armory_title': 'Cephanelik',
+        'weapon_trial_activated_message': '{weaponName} bu oyun için denemeye hazır!',
         'armory_back_button': 'Geri',
         'armory_back_button_text': 'Geri',
         'armory_select_button': 'Seç',
@@ -261,6 +269,9 @@ export const translations = {
         'loading_text': 'Yükleniyor...',
     },
     'ru': { // Русский
+        'armory_try_weapon_button': 'Попробовать на 1 игру (Рекл.)',
+        'confirm_try_weapon_title': 'Попробовать оружие?',
+        'confirm_try_weapon_message': 'Посмотреть рекламу, чтобы попробовать оружие {weaponName} на одну игру?',
         'confirm_red_bottle_title': 'Красная бутылка сбита!',
         'confirm_red_bottle_message': 'Посмотреть рекламу, чтобы продолжить этот уровень? (Один раз за игру)',
         'confirm_ammo_reward_title': 'Нет патронов!',
@@ -280,6 +291,7 @@ export const translations = {
         'leaderboard_score_colon': 'Счет:',
         'play_button': 'Играть',
         'ingame_exit_button': 'Выход в меню',
+        'weapon_trial_activated_message': '{weaponName} готов к пробной игре!',
         'achievements_button': 'Достижения',
         'how_to_play_button': 'Как играть?',
         'settings_button': 'Настройки',

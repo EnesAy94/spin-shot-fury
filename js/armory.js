@@ -4,8 +4,10 @@ import * as state from './state.js';
 import * as ui from './ui.js';
 import * as storage from './storage.js';
 import { WEAPONS } from './config.js';
+import * as main from './main.js';
 import { applyWeaponStats } from './playerAction.js';
 import { checkAndUnlockAchievement } from './gameLogic.js';
+import * as gameLogic from './gameLogic.js';
 
 /**
  * Initialize event listeners for the Armory screen
@@ -71,12 +73,65 @@ function handleSelectWeapon(event) {
     const weaponId = event.target.dataset.weaponId;
     if (!weaponId) return;
 
-    if (state.getUnlockedWeaponIds().includes(weaponId)) {
+    const isUnlocked = state.getUnlockedWeaponIds().includes(weaponId);
+    const isTrialActiveForThisWeapon = state.isTrialWeaponActive() && state.getTrialWeaponId() === weaponId;
+
+    if (isUnlocked || isTrialActiveForThisWeapon) {
+ 
+        if (isTrialActiveForThisWeapon) {
+
+        }
+
         const success = state.setSelectedWeaponId(weaponId);
         if (success) {
-            storage.saveSelectedWeapon(weaponId);
+            storage.saveSelectedWeapon(weaponId); 
+
+            if (isUnlocked) {
+                storage.saveSelectedWeapon(weaponId);
+            }
             applyWeaponStats();
-            ui.updateArmoryDisplay();
+            ui.updateArmoryDisplay(); 
         }
     }
+}
+
+export function handleTryWeaponWithAd(weaponId, weaponName) {
+    if (!weaponId || !weaponName) return;
+
+    ui.showConfirmationModal(
+        'confirm_try_weapon_title',
+        'confirm_try_weapon_message', 
+
+        () => {
+            main.showRewardedVideoAd(
+                () => {
+                    console.log(`Trial granted for weapon: ${weaponId}`);
+                    state.setTrialWeapon(weaponId);
+                    const success = state.setSelectedWeaponId(weaponId); 
+                    if (success) {
+                        storage.saveSelectedWeapon(weaponId); 
+                        applyWeaponStats(); 
+                        ui.updateArmoryDisplay(); 
+                        ui.showGeneralNotification('weapon_trial_activated_message', '🔫', 3000, { weaponName: weaponName });
+                        ui.showMainMenu(); 
+                        state.setCurrentGameMode(state.getCurrentGameMode() || 'normal'); 
+                        gameLogic.startGame();
+                    } else {
+                        console.error("Failed to set trial weapon as selected.");
+                    }
+                },
+                (wasShown) => { 
+                    console.log(`Try weapon ad closed. Was shown: ${wasShown}`);
+                    if (!wasShown) {
+                    }
+                },
+                (error) => { 
+                    console.error("Try weapon ad error:", error);
+                }
+            );
+        },
+        () => {
+            console.log("User declined to watch ad for trial weapon.");
+        }
+    );
 }

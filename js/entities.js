@@ -35,21 +35,15 @@ export function createBottles() {
         return;
     }
 
-    // Responsive container dimensions
-    const gameContainerRect = ui.gameContainer.getBoundingClientRect();
-    const containerWidth = gameContainerRect.width;
-    const containerHeight = gameContainerRect.height;
-
+    // Calculate responsive container dimensions and bottle placement.
+    const { width: containerWidth, height: containerHeight } = ui.gameContainer.getBoundingClientRect();
     const centerX = containerWidth / 2;
     const centerY = containerHeight / 2;
-
-    // Responsive placement radius
     const placementRadius = Math.min(containerWidth, containerHeight) * 0.40;
+    const bottleWidth = Math.max(20, Math.min(40, containerWidth * 0.05));
+    const bottleHeight = bottleWidth * 2.2;
 
-    // Responsive bottle dimensions
-    const bottleWidth = Math.max(30, Math.min(50, containerWidth * 0.05));
-    const bottleHeight = bottleWidth * 2;
-
+    // Create bottles based on angles and game mode.
     const redIndices = getRedBottleIndices(gameMode, levelIndex, angles.length);
     const newBottles = angles.map((angleDeg, index) => {
         const angleRad = config.degreesToRadians(angleDeg);
@@ -83,22 +77,17 @@ export function createBottles() {
     state.setBottles(newBottles);
 }
 
+// Handles window resize by recreating bottles if any exist.
 export function handleResize() {
     if (state.getBottles().length > 0) {
         createBottles();
     }
 }
 
+// Initializes bottles on load and sets up resize event listener.
 window.addEventListener('load', () => {
-    if (typeof createBottles === 'function') {
-        createBottles();
-    }
-
-    window.addEventListener('resize', () => {
-        if (typeof handleResize === 'function') {
-            handleResize();
-        }
-    });
+    createBottles();
+    window.addEventListener('resize', handleResize);
 });
 
 // Determines red bottle indices based on game mode.
@@ -111,8 +100,7 @@ function getRedBottleIndices(gameMode, levelIndex, totalPositions) {
     } else if (gameMode === 'random') {
         const redCount = Math.min(config.redBottleCountsForRandomMode[levelIndex] || 0, totalPositions);
         const indices = Array.from({ length: totalPositions }, (_, i) => i);
-        for (let i = 0; i < redCount; i++) {
-            if (!indices.length) break;
+        for (let i = 0; i < redCount && indices.length; i++) {
             const randomIndex = Math.floor(Math.random() * indices.length);
             redIndices.push(indices.splice(randomIndex, 1)[0]);
         }
@@ -125,18 +113,13 @@ function getRedBottleIndices(gameMode, levelIndex, totalPositions) {
 export function createBullet(fireAngle) {
     if (!ui.gameContainer) return;
 
-    const gameContainerRect = ui.gameContainer.getBoundingClientRect();
-    const containerWidth = gameContainerRect.width;
-    const containerHeight = gameContainerRect.height;
-
-    // Responsive merkez noktası
+    const { width: containerWidth, height: containerHeight } = ui.gameContainer.getBoundingClientRect();
     const centerX = containerWidth / 2;
     const centerY = containerHeight / 2;
-
-    // Responsive mermi boyutları
     const bulletWidth = Math.max(5, Math.min(8, containerWidth * 0.015));
     const bulletHeight = bulletWidth;
 
+    // Create bullet element.
     const bullet = document.createElement('div');
     bullet.className = 'bullet';
     bullet.style.width = `${bulletWidth}px`;
@@ -152,12 +135,10 @@ export function createBullet(fireAngle) {
     const velocityY = Math.sin(angleRad) * config.bulletSpeed;
     ui.gameContainer.appendChild(bullet);
 
-    let animationId = null;
-
+    // Animate bullet movement.
     function animate() {
         if (state.isGameOver() || state.isGameWon()) {
             bullet.remove();
-            if (animationId) cancelAnimationFrame(animationId);
             return;
         }
 
@@ -166,71 +147,53 @@ export function createBullet(fireAngle) {
         bullet.style.left = `${x - bulletWidth / 2}px`;
         bullet.style.top = `${y - bulletHeight / 2}px`;
 
-        const isOutOfBounds = x < -bulletWidth ||
-            x > containerWidth + bulletWidth ||
-            y < -bulletHeight ||
-            y > containerHeight + bulletHeight;
-
+        const isOutOfBounds = x < -bulletWidth || x > containerWidth + bulletWidth ||
+                              y < -bulletHeight || y > containerHeight + bulletHeight;
         const hit = checkBulletCollision(x, y);
 
         if (hit || isOutOfBounds) {
             bullet.remove();
-            if (animationId) cancelAnimationFrame(animationId);
-
             if (!hit) {
                 resetCombo();
                 state.setHasMissedShotInSession(true);
             }
 
+            // Handle ammo depletion and ad-based ammo reward.
             if (state.getAmmoCount() <= 0 && !state.isGameOver() && !state.isGameWon()) {
                 const greenBottlesLeft = state.getBottles().some(b => b.type === 'green' && !b.hit);
                 if (greenBottlesLeft) {
                     if (!state.hasUsedAmmoRewardThisGame()) {
                         gameLogic.pauseGameForAd();
-
                         ui.showConfirmationModal(
                             'confirm_ammo_reward_title',
                             'confirm_ammo_reward_message',
                             () => {
-                                console.log("entities.js: YES callback triggered. Calling main.showRewardedVideoAd");
                                 main.showRewardedVideoAd(
                                     () => {
-                                        console.log("Ammo reward granted.");
                                         state.setAmmo(state.getAmmoCount() + 3);
                                         state.setUsedAmmoRewardThisGame(true);
                                         ui.updateAmmoDisplay();
                                         gameLogic.resumeGameAfterAd(true);
                                     },
-                                    (wasShown) => { // Reklam kapandı
-                                        console.log("Ammo reward ad closed. Was shown:", wasShown);
-                                        const rewarded = state.hasUsedAmmoRewardThisGame(); // Ödül alındı mı kontrol et
+                                    wasShown => {
+                                        const rewarded = state.hasUsedAmmoRewardThisGame();
                                         if (!rewarded && state.getAmmoCount() <= 0 && state.getBottles().some(b => b.type === 'green' && !b.hit)) {
-                                            console.log("Ad not rewarded, no ammo, green bottles left. Game Over.");
                                             gameOver('no_ammo');
                                         } else if (rewarded || state.getAmmoCount() > 0) {
-                                            // Eğer ödül alındıysa veya zaten mermi varsa ve oyun bitmediyse devam et
-                                            if (!state.isGameOver() && !state.isGameWon()) {
-                                                gameLogic.resumeGameAfterAd(rewarded);
-                                            }
+                                            gameLogic.resumeGameAfterAd(rewarded);
                                         }
                                     },
-                                    (error) => { // Reklam hatası
+                                    error => {
                                         console.error("Ammo reward ad error:", error);
-                                        // Hata durumunda, eğer hala mermi yoksa ve yeşil şişe varsa oyunu bitir.
                                         if (state.getAmmoCount() <= 0 && state.getBottles().some(b => b.type === 'green' && !b.hit)) {
-                                            console.log("Ad error, no ammo, green bottles left. Game Over.");
                                             gameOver('no_ammo');
-                                        } else if (!state.isGameOver() && !state.isGameWon()) {
-                                            gameLogic.resumeGameAfterAd(false); // Oyunu devam ettir ama ödül yok
+                                        } else {
+                                            gameLogic.resumeGameAfterAd(false);
                                         }
                                     }
                                 );
                             },
-                            () => {
-                                console.log("entities.js: NO callback triggered. Calling gameOver.");
-                                console.log("User declined ammo reward ad.");
-                                gameOver('no_ammo');
-                            }
+                            () => gameOver('no_ammo')
                         );
                     } else {
                         setTimeout(() => {
@@ -244,29 +207,25 @@ export function createBullet(fireAngle) {
             return;
         }
 
-        animationId = requestAnimationFrame(animate);
+        requestAnimationFrame(animate);
     }
 
-    animationId = requestAnimationFrame(animate);
+    requestAnimationFrame(animate);
 }
 
 // Creates particle effects at the bottle's center upon hit.
 function createAndAddParticles(bottleElement, numParticles = 5) {
     if (!bottleElement || !ui.gameContainer) return;
 
-    const style = getComputedStyle(bottleElement);
-    const left = parseFloat(style.left);
-    const top = parseFloat(style.top);
-    const width = parseFloat(style.width);
-    const height = parseFloat(style.height);
+    const { left, top, width, height } = getComputedStyle(bottleElement);
+    const startX = parseFloat(left) + parseFloat(width) / 2;
+    const startY = parseFloat(top) + parseFloat(height) / 2;
 
-    if (isNaN(left) || isNaN(top) || isNaN(width) || isNaN(height)) {
+    if (isNaN(startX) || isNaN(startY)) {
         console.error('Invalid bottle dimensions for particles.');
         return;
     }
 
-    const startX = left + width / 2;
-    const startY = top + height / 2;
     const animations = ['particle-explode-1', 'particle-explode-2', 'particle-explode-3', 'particle-explode-4', 'particle-explode-5'];
     const baseDuration = 700;
     const particleSize = 8;
@@ -285,7 +244,6 @@ function createAndAddParticles(bottleElement, numParticles = 5) {
 
         particle.style.animation = `${animName} ${duration / 1000}s ${delay / 1000}s cubic-bezier(0.25, 0.1, 0.25, 1) forwards`;
         ui.gameContainer.appendChild(particle);
-
         setTimeout(() => particle.remove(), duration + delay + 100);
     }
 }
@@ -321,60 +279,50 @@ function checkBulletCollision(bulletX, bulletY) {
                 checkAndUnlockAchievement('first_red_bottle');
                 resetCombo();
                 if (!state.hasUsedRedBottleRewardThisGame()) {
-                    gameLogic.pauseGameForAd(); 
-
+                    gameLogic.pauseGameForAd();
                     ui.showConfirmationModal(
                         'confirm_red_bottle_title',
                         'confirm_red_bottle_message',
-                        () => { 
+                        () => {
                             main.showRewardedVideoAd(
-                                () => { 
-                                    console.log("Red bottle continuation granted.");
+                                () => {
                                     state.setUsedRedBottleRewardThisGame(true);
                                     gameLogic.resumeGameAfterAd(true);
                                 },
-                                (wasShown) => {
-                                    console.log("Red bottle ad closed. Was shown:", wasShown);
-                                    const rewarded = state.hasUsedRedBottleRewardThisGame();
-                                    if (!rewarded) { 
-                                        console.log("Ad not rewarded after red bottle hit. Game Over.");
+                                wasShown => {
+                                    if (!state.hasUsedRedBottleRewardThisGame()) {
                                         gameOver('red_bottle');
-                                    } else if (!state.isGameOver() && !state.isGameWon()) {
+                                    } else {
                                         gameLogic.resumeGameAfterAd(true);
                                     }
                                 },
-                                (error) => { 
+                                error => {
                                     console.error("Red bottle ad error:", error);
-                                    gameLogic.resumeGameAfterAd(false); 
+                                    gameLogic.resumeGameAfterAd(false);
                                     gameOver('red_bottle');
                                 }
                             );
                         },
-                        () => { 
-                            console.log("User declined red bottle continuation. Game Over.");
-                            gameOver('red_bottle'); 
-                        }
+                        () => gameOver('red_bottle')
                     );
                 } else {
-                    console.log("Red bottle reward already used this game. Game Over.");
                     gameOver('red_bottle');
                 }
-        } else {
-            state.increaseCombo();
-            const multiplier = Math.min(Math.floor(state.getCurrentCombo() / 2) + 1, 5);
-            state.setComboMultiplier(multiplier);
-            if (multiplier >= 5) {
-                checkAndUnlockAchievement('combo_master_x5');
+            } else {
+                state.increaseCombo();
+                const multiplier = Math.min(Math.floor(state.getCurrentCombo() / 2) + 1, 5);
+                state.setComboMultiplier(multiplier);
+                if (multiplier >= 5) {
+                    checkAndUnlockAchievement('combo_master_x5');
+                }
+                const points = config.getBasePointsForLevel(state.getLevel()) * multiplier;
+                state.increaseScore(points);
+                ui.updateComboDisplay();
+                ui.updateUI();
+                checkLevelComplete();
             }
-            const points = config.getBasePointsForLevel(state.getLevel()) * multiplier;
-            state.increaseScore(points);
-
-            ui.updateComboDisplay();
-            ui.updateUI();
-            checkLevelComplete();
+            return true;
         }
-        return true;
     }
-}
-return false;
+    return false;
 }

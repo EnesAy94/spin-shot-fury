@@ -8,7 +8,7 @@ import * as storage from './storage.js';
 import * as gameLogic from './gameLogic.js';
 import * as playerAction from './playerAction.js';
 import * as audio from './audio.js';
-import { loadSounds, ensureAudioContext, notifyUserInteractionForMusic, applyCurrentAudioSettings, ensureMusicElementsReady, manageMusic } from './audio.js';
+import { loadSounds, ensureAudioContext, notifyUserInteractionForMusic, applyCurrentAudioSettings, ensureMusicElementsReady } from './audio.js';
 import { NATIVE_WIDTH, NATIVE_HEIGHT, MENU_NATIVE_WIDTH, MENU_NATIVE_HEIGHT } from './config.js';
 
 let ysdkInstance = null;
@@ -29,17 +29,15 @@ const progressBar = document.getElementById('loading-progress-bar');
 const progressPercentageText = document.getElementById('loading-progress-percentage');
 let assetsLoadedCount = 0;
 
+// Updates loading progress bar and percentage text.
 function updateProgress() {
     assetsLoadedCount++;
-    const percentage = Math.round((assetsLoadedCount / (ASSETS_TO_LOAD.length + 2)) * 100); // +2 loadSounds ve ensureMusicElementsReady için
-    if (progressBar) {
-        progressBar.style.width = `${percentage}%`;
-    }
-    if (progressPercentageText) {
-        progressPercentageText.textContent = `${percentage}%`;
-    }
+    const percentage = Math.round((assetsLoadedCount / (ASSETS_TO_LOAD.length + 2)) * 100);
+    if (progressBar) progressBar.style.width = `${percentage}%`;
+    if (progressPercentageText) progressPercentageText.textContent = `${percentage}%`;
 }
 
+// Preloads an asset (image) and updates progress.
 async function preloadAsset(src) {
     return new Promise((resolve, reject) => {
         if (src.endsWith('.png') || src.endsWith('.jpg') || src.endsWith('.jpeg') || src.endsWith('.gif')) {
@@ -56,52 +54,41 @@ async function preloadAsset(src) {
     });
 }
 
+// Loads all assets, including images, sounds, and music elements.
 async function loadAllAssets() {
     const assetPromises = ASSETS_TO_LOAD.map(preloadAsset);
-
-    assetPromises.push(loadSounds().then(() => { updateProgress(); }));
-
+    assetPromises.push(loadSounds().then(updateProgress));
     assetPromises.push(new Promise(resolve => {
         ensureMusicElementsReady();
         updateProgress();
         resolve();
     }));
-
     await Promise.all(assetPromises);
 }
 
+// Displays an interstitial ad and handles audio pause/resume.
 async function showInterstitialAd(onAdClosedCallback) {
-    if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showFullscreenAdv !== 'function') {
-        console.warn("Yandex SDK or Adv module/showFullscreenAdv not available. Skipping ad.");
+    if (!ysdkInstance?.adv?.showFullscreenAdv) {
         if (onAdClosedCallback) onAdClosedCallback(false);
         return;
     }
 
     audio.pauseAllAudioForAd();
-    console.log("Attempting to show Interstitial Ad...");
-
     try {
         await new Promise((resolve, reject) => {
             ysdkInstance.adv.showFullscreenAdv({
                 callbacks: {
-                    onClose: function (wasShown) {
-                        console.log("Interstitial Ad closed. Was shown:", wasShown);
+                    onClose: wasShown => {
                         audio.resumeAllAudioAfterAd();
                         if (onAdClosedCallback) onAdClosedCallback(wasShown);
                         resolve(wasShown);
                     },
-                    onError: function (errorData) {
-                        console.error("Interstitial Ad error:", errorData);
+                    onError: errorData => {
                         audio.resumeAllAudioAfterAd();
                         if (onAdClosedCallback) onAdClosedCallback(false);
                         reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
                     },
-                    onOpen: () => {
-                        console.log("Interstitial Ad opened.");
-
-                    },
                     onOffline: () => {
-                        console.warn("Interstitial Ad offline. Cannot show ad.");
                         audio.resumeAllAudioAfterAd();
                         if (onAdClosedCallback) onAdClosedCallback(false);
                         resolve(false);
@@ -110,71 +97,43 @@ async function showInterstitialAd(onAdClosedCallback) {
             });
         });
     } catch (error) {
-        console.error("Exception during showFullscreenAdv or its callbacks:", error);
-        if (!audio.sfxPausedByAd && !audio.musicPausedByAd) {
-            audio.resumeAllAudioAfterAd();
-        }
+        audio.resumeAllAudioAfterAd();
         if (onAdClosedCallback) onAdClosedCallback(false);
     }
 }
 
-/**
- * @param {function} onRewarded Callback function called if the ad is watched successfully.
- * @param {function} [onClose] Callback function called when the ad is closed, regardless of success.
- * @param {function} [onError] Callback function called if an error occurs.
- */
+// Displays a rewarded video ad and handles callbacks.
 export async function showRewardedVideoAd(onRewarded, onClose, onError) {
-        console.log("showRewardedVideoAd CALLED. ysdkInstance available:", !!ysdkInstance);
-    if (ysdkInstance && ysdkInstance.adv) {
-        console.log("ysdkInstance.adv available. showRewardedVideo is function:", typeof ysdkInstance.adv.showRewardedVideo === 'function');
-    }
-    if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showRewardedVideo !== 'function') {
-        console.warn("Yandex SDK or Rewarded Video module/showRewardedVideo not available. Skipping ad.");
+    if (!ysdkInstance?.adv?.showRewardedVideo) {
         if (onError) onError("SDK not available");
-        if (onClose) onClose(false); 
+        if (onClose) onClose(false);
         return;
     }
 
-    audio.pauseAllAudioForAd(); // Reklam için sesi duraklat
-    console.log("Attempting to show Rewarded Video Ad...");
-
-    //ui.showAdLoadingIndicator(true); 
-
+    audio.pauseAllAudioForAd();
     try {
         await new Promise((resolve, reject) => {
             ysdkInstance.adv.showRewardedVideo({
                 callbacks: {
-                    onOpen: () => {
-                        console.log('Rewarded video ad opened.');
-                    },
                     onRewarded: () => {
-                        console.log('Rewarded video ad: User was rewarded!');
                         if (onRewarded) onRewarded();
                     },
-                    onClose: (wasShown) => {
-                        console.log('Rewarded video ad closed. Was shown:', wasShown);
+                    onClose: wasShown => {
                         audio.resumeAllAudioAfterAd();
-                        //ui.showAdLoadingIndicator(false);
                         if (onClose) onClose(wasShown);
                         resolve(wasShown);
                     },
-                    onError: (errorData) => {
-                        console.error('Rewarded video ad error:', errorData);
+                    onError: errorData => {
                         audio.resumeAllAudioAfterAd();
-                        //ui.showAdLoadingIndicator(false);
                         if (onError) onError(errorData);
                         if (onClose) onClose(false);
-                        reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData))); 
+                        reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
                     }
                 }
             });
         });
     } catch (error) {
-        console.error("Exception during showRewardedVideo or its callbacks:", error);
-        if (!audio.sfxPausedByAd && !audio.musicPausedByAd) {
-            audio.resumeAllAudioAfterAd();
-        }
-        //ui.showAdLoadingIndicator(false);
+        audio.resumeAllAudioAfterAd();
         if (onClose) onClose(false);
     }
 }
@@ -183,14 +142,10 @@ export async function showRewardedVideoAd(onRewarded, onClose, onError) {
 async function initGame() {
     try {
         ysdkInstance = await YaGames.init();
-        console.log('Yandex SDK initialized');
         storage.setYandexSDK(ysdkInstance);
     } catch (e) {
-        console.warn('Yandex SDK initialization failed.', e);
         storage.setYandexSDK(null);
     }
-
-    console.log('All assets supposedly loaded.');
 
     await gameLogic.loadProgressAndInitialize();
     applyCurrentAudioSettings();
@@ -202,31 +157,23 @@ async function initGame() {
     handleResize();
 
     const loadingScreen = document.getElementById('loading-screen');
-    if (loadingScreen) {
-        loadingScreen.style.display = 'none';
-    }
+    if (loadingScreen) loadingScreen.style.display = 'none';
     ui.showMainMenu();
 
-    console.log("Attempting to show initial ad after main menu is shown.");
-    await showInterstitialAd(async (adShown) => {
-        console.log("Initial ad closed. Ad shown:", adShown);
-
-        if (ysdkInstance && ysdkInstance.features && ysdkInstance.features.LoadingAPI) {
+    await showInterstitialAd(async wasShown => {
+        if (ysdkInstance?.features?.LoadingAPI) {
             try {
                 await ysdkInstance.features.LoadingAPI.ready();
-                console.log('Yandex SDK LoadingAPI.ready() called successfully after initial ad.');
             } catch (error) {
-                console.error('Error calling LoadingAPI.ready() after initial ad:', error);
+                console.error('Error calling LoadingAPI.ready():', error);
             }
-        } else {
-            console.warn('Yandex SDK or LoadingAPI feature not available. Skipping LoadingAPI.ready() after initial ad.');
         }
     });
 }
 
+// Main entry point for game initialization.
 async function main() {
-
-    const savedProgress = storage.loadGameProgress();
+    const savedProgress = await storage.loadGameProgress();
     if (savedProgress.currentLanguage) {
         state.setCurrentLanguage(savedProgress.currentLanguage);
     }
@@ -245,7 +192,6 @@ async function main() {
     }
 }
 
-
 // Sets up event listeners for game interactions and UI navigation.
 function setupEventListeners() {
     if (ui.gameContainer) {
@@ -254,18 +200,6 @@ function setupEventListeners() {
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('resize', handleResize);
 
-    window.addEventListener('load', () => {
-        if (typeof createBottles === 'function') {
-            createBottles();
-        }
-        window.addEventListener('resize', () => {
-            if (typeof handleResize === 'function') {
-                handleResize();
-            }
-        });
-    });
-
-
     const buttons = {
         'play-button': ui.showModeSelectScreen,
         'leaderboard-button': ui.showLeaderboardScreen,
@@ -273,8 +207,29 @@ function setupEventListeners() {
         'settings-button': ui.showSettingsScreen,
         'armory-button': ui.showArmoryScreen,
         'achievements-button': ui.showAchievementsScreen,
-        'play-again-button': gameLogic.startGame,
-        'exit-button': ui.showMainMenu,
+        'play-again-button': async () => {
+            if (state.isGameWon()) {
+                await showInterstitialAd(wasShown => {
+                    state.resetLostGamePlayAgainCount();
+                    gameLogic.startGame();
+                });
+            } else {
+                if (state.getLostGamePlayAgainCount() >= 1) {
+                    await showInterstitialAd(wasShown => {
+                        state.incrementLostGamePlayAgainCount();
+                        gameLogic.startGame();
+                    });
+                } else {
+                    state.incrementLostGamePlayAgainCount();
+                    gameLogic.startGame();
+                }
+            }
+        },
+        'exit-button': async () => {
+            await showInterstitialAd(wasShown => {
+                ui.showMainMenu();
+            });
+        },
         'leaderboard-back-button': ui.showMainMenu,
         'achievements-back-button': ui.showMainMenu,
         'how-to-play-back-button': ui.showMainMenu,
@@ -294,57 +249,15 @@ function setupEventListeners() {
     Object.entries(buttons).forEach(([id, handler]) => {
         const button = document.getElementById(id);
         if (button) button.addEventListener('click', () => {
-              handleUserInteraction(); 
-                handler();
-            });
+            handleUserInteraction();
+            handler();
+        });
     });
-
-    const playAgainBtn = document.getElementById('play-again-button');
-    const exitBtn = document.getElementById('exit-button');
-
-    if (playAgainBtn) {
-        playAgainBtn.addEventListener('click', async () => {
-            if (state.isGameWon()) {
-                await showInterstitialAd((adShown) => {
-                    console.log("Ad closed after winning, proceeding to start game. Ad shown:", adShown);
-                    state.resetLostGamePlayAgainCount();
-                    gameLogic.startGame();
-                });
-            } else {
-                if (state.getLostGamePlayAgainCount() >= 1) {
-                    await showInterstitialAd((adShown) => {
-                        console.log("Ad closed after losing (2nd+ try), proceeding to start game. Ad shown:", adShown);
-                        state.incrementLostGamePlayAgainCount();
-                        gameLogic.startGame();
-                    });
-                } else {
-                    console.log("First play again after losing, no ad.");
-                    state.incrementLostGamePlayAgainCount();
-                    gameLogic.startGame();
-                }
-            }
-        });
-    }
-
-    if (exitBtn) {
-        exitBtn.addEventListener('click', async () => {
-            await showInterstitialAd((adShown) => {
-                console.log("Ad closed after game end exit, proceeding to main menu. Ad shown:", adShown);
-                ui.showMainMenu();
-            });
-        });
-    }
-    const inGameExitBtn = document.getElementById('in-game-exit-button');
-    if (inGameExitBtn) {
-        inGameExitBtn.addEventListener('click', handleInGameExit);
-    }
 }
 
 // Handles in-game exit by stopping game loops and showing main menu.
 async function handleInGameExit() {
-    await showInterstitialAd(async (adShown) => {
-        console.log("Ad closed after in-game exit, proceeding with exit logic. Ad shown:", adShown);
-
+    await showInterstitialAd(wasShown => {
         state.setGameOver(true);
         gameLogic.stopTimer();
         state.setRotating(false);
@@ -352,7 +265,6 @@ async function handleInGameExit() {
         state.cancelAnimationFrame();
         state.cancelSpinAnimationFrame();
         state.clearShotTimeout();
-        // manageMusic('menu'); 
         ui.showMainMenu();
     });
 }

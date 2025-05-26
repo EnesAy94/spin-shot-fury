@@ -463,8 +463,8 @@ body {
 
 #gun img#gun-image {
     display: block;
-    width: clamp(5rem, 12vw, 6.875rem);
-    height: clamp(6.25rem, 15vw, 8.75rem);
+    width: clamp(4.5rem, 11vw, 6.2rem);
+    height: clamp(6rem, 13vw, 7.8rem);
     filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
 }
 
@@ -482,8 +482,8 @@ body {
 
 @media (max-width: 600) {
     .bottle {
-        min-width: 15px;
-        min-height: 30px;
+        min-width: 5px;
+        min-height: 10px;
     }
 }
 
@@ -1160,6 +1160,28 @@ body {
 #armory-back-button:active {
     transform: scale(0.95);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#armory-try-weapon-button {
+    padding: clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
+    font-size: clamp(0.8rem, 2.8vw, 1.1rem);
+    font-family: 'Oswald', sans-serif;
+    cursor: pointer;
+    border-radius: clamp(0.5rem, 2vw, 0.625rem);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    margin-top: clamp(0.3rem, 1.5vw, 0.5rem);
+    min-width: min(8.75rem, 25vw);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    animation: buttonFadeIn 0.5s ease-out forwards;
+    background: linear-gradient(135deg, #ff9800, #f57c00); 
+    color: white;
+}
+
+#armory-try-weapon-button:hover {
+    background: linear-gradient(135deg, #f57c00, #e65100);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
 }
 
 /* Animations */

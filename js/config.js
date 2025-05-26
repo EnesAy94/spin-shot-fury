@@ -17,8 +17,8 @@ export const POINTS_PER_SECOND = 100;
 
 // Game Object Dimensions
 
-export const bottleWidth = 40;
-export const bottleHeight = 80;
+export const bottleWidth = 20;
+export const bottleHeight = 40;
 export const bulletWidth = 10;
 export const bulletHeight = 10;
 
@@ -86,7 +86,7 @@ export const WEAPONS = [
         id: 'revolver',
         name: 'Revolver',
         imageSrc: 'images/revolver.png',
-        rotationSpeed: 1.2,
+        rotationSpeed: 1.4,
         maxAmmo: 8,
         unlockWins: 0,
         unlocksWith: null,
@@ -96,7 +96,7 @@ export const WEAPONS = [
         id: 'glock17',
         name: 'Glock 17',
         imageSrc: 'images/glock17.png',
-        rotationSpeed: 1.75,
+        rotationSpeed: 1.9,
         maxAmmo: 10,
         unlockWins: 10,
         unlocksWith: { weaponId: 'revolver', winsNeeded: 10 },
@@ -106,7 +106,7 @@ export const WEAPONS = [
         id: 'UMP45',
         name: 'UMP45',
         imageSrc: 'images/ump45.png',
-        rotationSpeed: 0.7,
+        rotationSpeed: 0.9,
         maxAmmo: 12,
         unlockWins: 10,
         unlocksWith: { weaponId: 'glock17', winsNeeded: 10 },
@@ -116,7 +116,7 @@ export const WEAPONS = [
         id: 'awm',
         name: 'AWM',
         imageSrc: 'images/awm.png',
-        rotationSpeed: 0.5,
+        rotationSpeed: 0.6,
         maxAmmo: 8,
         unlocksWith: null,
         description: 'Ultimate precision. Unlocked by mastering all achievements.',

@@ -12,8 +12,7 @@ export function applyWeaponStats() {
     const selectedId = state.getSelectedWeaponId();
     const weapon = WEAPONS.find(w => w.id === selectedId) || WEAPONS[0];
 
-    if (!WEAPONS.find(w => w.id === selectedId)) {
-        console.error(`Weapon "${selectedId}" not found. Using default.`);
+    if (!weapon) {
         state.setSelectedWeaponId(WEAPONS[0].id);
     }
 
@@ -36,15 +35,12 @@ export function applyWeaponStats() {
 
 // Rotates the gun based on rotation speed.
 export function rotateGun() {
-    if (!state.isRotating() || state.isSpinning() || state.isGameOver() || state.isGameWon()) {
+    if (state.isRotating() && !state.isSpinning() && !state.isGameOver() && !state.isGameWon()) {
+        const newRotation = (state.getCurrentRotation() + state.getRotationSpeed()) % 360;
+        state.setCurrentRotation(newRotation);
+        ui.setGunRotation(newRotation);
         state.setAnimationFrameId(requestAnimationFrame(rotateGun));
-        return;
     }
-
-    const newRotation = (state.getCurrentRotation() + state.getRotationSpeed()) % 360;
-    state.setCurrentRotation(newRotation);
-    ui.setGunRotation(newRotation);
-    state.setAnimationFrameId(requestAnimationFrame(rotateGun));
 }
 
 // Performs a 360-degree spin animation for the gun.
@@ -53,6 +49,7 @@ export function performSpin() {
 
     state.setSpinning(true);
     state.setRotating(false);
+
     const startAngle = state.getCurrentRotation();
     let startTime = performance.now();
 
@@ -65,6 +62,7 @@ export function performSpin() {
 
         const elapsedTime = currentTime - startTime;
         const spinProgress = Math.min((elapsedTime / spinDuration) * 360, 360);
+
         ui.setGunRotation(startAngle + spinProgress);
 
         if (spinProgress < 360) {
@@ -73,8 +71,11 @@ export function performSpin() {
             state.setCurrentRotation((startAngle + 360) % 360);
             ui.setGunRotation(state.getCurrentRotation());
             state.setSpinning(false);
-            state.setRotating(!(state.isGameOver() || state.isGameWon()));
-            state.cancelSpinAnimationFrame();
+            const canContinueRotating = !(state.isGameOver() || state.isGameWon());
+            state.setRotating(canContinueRotating);
+            if (canContinueRotating) {
+                rotateGun();
+            }
         }
     }
 

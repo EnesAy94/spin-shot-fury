@@ -40,13 +40,17 @@ let _currentGameMode = 'normal';
 let _lostGamePlayAgainCount = 0;
 let _usedAmmoRewardThisGame = false;
 let _usedRedBottleRewardThisGame = false;
+let _trialWeaponId = null;
+let _isTrialWeaponActive = false;
 
 // Getters
+export function getTrialWeaponId() { return _trialWeaponId; }
+export function isTrialWeaponActive() { return _isTrialWeaponActive; }
 export function hasUsedRedBottleRewardThisGame() { return _usedRedBottleRewardThisGame; }
-export function getAllWinsData() { return { ..._winsPerWeapon }; }
 export function hasUsedAmmoRewardThisGame() { return _usedAmmoRewardThisGame; }
 export function getLostGamePlayAgainCount() { return _lostGamePlayAgainCount; }
 export function getWinsForWeapon(weaponId) { return _winsPerWeapon[weaponId] || 0; }
+export function getAllWinsData() { return { ..._winsPerWeapon }; }
 export function getLevel() { return _level; }
 export function getScore() { return _score; }
 export function getAmmoCount() { return _ammoCount; }
@@ -85,9 +89,9 @@ export function getCurrentLanguage() { return _currentLanguage; }
 export function getCurrentGameMode() { return _currentGameMode; }
 
 // Setters and Updaters
-export function setUsedRedBottleRewardThisGame(value) { _usedRedBottleRewardThisGame = value; } 
-export function incrementLostGamePlayAgainCount() { _lostGamePlayAgainCount++; }
+export function setUsedRedBottleRewardThisGame(value) { _usedRedBottleRewardThisGame = value; }
 export function setUsedAmmoRewardThisGame(value) { _usedAmmoRewardThisGame = value; }
+export function incrementLostGamePlayAgainCount() { _lostGamePlayAgainCount++; }
 export function resetLostGamePlayAgainCount() { _lostGamePlayAgainCount = 0; }
 export function setAmmo(count) { _ammoCount = count; }
 export function setLevel(level) { _level = level; }
@@ -111,28 +115,7 @@ export function clearBottles() { _bottles = []; }
 export function setCurrentRotation(angle) { _currentRotation = angle; }
 export function setCurrentArmoryIndex(index) { _currentArmoryIndex = index; }
 export function setWinsData(winsData) { _winsPerWeapon = winsData ? { ...winsData } : {}; }
-export function setSelectedWeaponId(weaponId) {
-    if (_unlockedWeaponIds.includes(weaponId)) {
-        _selectedWeaponId = weaponId;
-        const weapon = WEAPONS.find(w => w.id === weaponId);
-        if (weapon) {
-            _rotationSpeed = weapon.rotationSpeed;
-        }
-        return true;
-    }
-    return false;
-}
-export function setCurrentGameMode(mode) {
-    if (['normal', 'random'].includes(mode)) {
-        _currentGameMode = mode;
-    } else {
-        console.warn(`Unsupported game mode: ${mode}. Using 'normal'.`);
-        _currentGameMode = 'normal';
-    }
-}
-export function incrementWinsForWeapon(weaponId) {
-    _winsPerWeapon[weaponId] = (_winsPerWeapon[weaponId] || 0) + 1;
-}
+export function incrementWinsForWeapon(weaponId) { _winsPerWeapon[weaponId] = (_winsPerWeapon[weaponId] || 0) + 1; }
 export function setUnlockedWeaponIds(ids) { _unlockedWeaponIds = ids ? [...ids] : []; }
 export function setHighScore(score) { _highScore = score; }
 export function addUnlockedWeaponId(weaponId) {
@@ -168,9 +151,36 @@ export function setCurrentLanguage(langCode) {
     if (['en', 'tr', 'ru'].includes(langCode)) {
         _currentLanguage = langCode;
     } else {
-        console.warn(`Unsupported language: ${langCode}. Using 'en'.`);
         _currentLanguage = 'en';
     }
+}
+export function setCurrentGameMode(mode) {
+    if (['normal', 'random'].includes(mode)) {
+        _currentGameMode = mode;
+    } else {
+        _currentGameMode = 'normal';
+    }
+}
+export function setTrialWeapon(weaponId) {
+    _trialWeaponId = weaponId;
+    _isTrialWeaponActive = !!weaponId;
+}
+export function setSelectedWeaponId(weaponId) {
+    const isUnlocked = _unlockedWeaponIds.includes(weaponId);
+    const isCurrentlyTrial = _trialWeaponId === weaponId && _isTrialWeaponActive;
+
+    if (isUnlocked || isCurrentlyTrial) {
+        _selectedWeaponId = weaponId;
+        const weapon = WEAPONS.find(w => w.id === weaponId);
+        if (weapon) {
+            _rotationSpeed = weapon.rotationSpeed;
+        }
+        if (isUnlocked && _trialWeaponId && _trialWeaponId !== weaponId) {
+            clearTrialWeaponState();
+        }
+        return true;
+    }
+    return false;
 }
 
 // Timer and Animation ID Management
@@ -192,7 +202,6 @@ export function setAnimationFrameId(id) { _animationFrameId = id; }
 export function cancelAnimationFrame() {
     if (_animationFrameId) {
         window.cancelAnimationFrame(_animationFrameId);
-        console.log("Canceled animation frame with ID:", _animationFrameId); // LOG EKLE
         _animationFrameId = null;
     }
 }
@@ -202,6 +211,19 @@ export function cancelSpinAnimationFrame() {
         window.cancelAnimationFrame(_spinAnimationFrameId);
         _spinAnimationFrameId = null;
     }
+}
+export function clearFullTrialWeaponState() {
+    _trialWeaponId = null;
+    _isTrialWeaponActive = false;
+    const weaponIsStillUnlocked = _unlockedWeaponIds.includes(_selectedWeaponId);
+    const weaponIsDefault = WEAPONS[0].id === _selectedWeaponId;
+
+    if (_selectedWeaponId && !weaponIsStillUnlocked && !weaponIsDefault) {
+        _selectedWeaponId = WEAPONS[0].id;
+    }
+}
+export function clearActiveTrialOnNewGame() {
+    _isTrialWeaponActive = false;
 }
 
 // Resets combo-related state.
