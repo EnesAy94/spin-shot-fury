@@ -1,6 +1,8 @@
 // js/translations.js
 export const translations = {
     'en': { // English
+        'confirm_red_bottle_title': 'Red Bottle Hit!',
+        'confirm_red_bottle_message': 'Watch an ad to continue playing this level? (Once per game)',
         'confirm_ammo_reward_title': 'Out of Ammo!',
         'confirm_ammo_reward_message': 'Watch an ad to get 3 more bullets? (Once per game)',
         'confirm_button_yes': 'Yes, Watch Ad',
@@ -129,6 +131,8 @@ export const translations = {
         'loading_text': 'Loading...',
     },
     'tr': { // Türkçe
+        'confirm_red_bottle_title': 'Kırmızı Şişe Vuruldu!',
+        'confirm_red_bottle_message': 'Bu seviyeye devam etmek için reklam izlemek ister misin? (Oyun başına bir kez)',
         'confirm_ammo_reward_title': 'Mermi Bitti!',
         'confirm_ammo_reward_message': '3 mermi daha kazanmak için reklam izlemek ister misin? (Oyun başına bir kez)',
         'confirm_button_yes': 'Evet, Reklam İzle',
@@ -257,6 +261,8 @@ export const translations = {
         'loading_text': 'Yükleniyor...',
     },
     'ru': { // Русский
+        'confirm_red_bottle_title': 'Красная бутылка сбита!',
+        'confirm_red_bottle_message': 'Посмотреть рекламу, чтобы продолжить этот уровень? (Один раз за игру)',
         'confirm_ammo_reward_title': 'Нет патронов!',
         'confirm_ammo_reward_message': 'Посмотреть рекламу, чтобы получить еще 3 патрона? (Один раз за игру)',
         'confirm_button_yes': 'Да, смотреть',

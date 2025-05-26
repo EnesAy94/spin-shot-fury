@@ -42,6 +42,7 @@ let _usedAmmoRewardThisGame = false;
 let _usedRedBottleRewardThisGame = false;
 
 // Getters
+export function hasUsedRedBottleRewardThisGame() { return _usedRedBottleRewardThisGame; }
 export function getAllWinsData() { return { ..._winsPerWeapon }; }
 export function hasUsedAmmoRewardThisGame() { return _usedAmmoRewardThisGame; }
 export function getLostGamePlayAgainCount() { return _lostGamePlayAgainCount; }
@@ -84,6 +85,7 @@ export function getCurrentLanguage() { return _currentLanguage; }
 export function getCurrentGameMode() { return _currentGameMode; }
 
 // Setters and Updaters
+export function setUsedRedBottleRewardThisGame(value) { _usedRedBottleRewardThisGame = value; } 
 export function incrementLostGamePlayAgainCount() { _lostGamePlayAgainCount++; }
 export function setUsedAmmoRewardThisGame(value) { _usedAmmoRewardThisGame = value; }
 export function resetLostGamePlayAgainCount() { _lostGamePlayAgainCount = 0; }

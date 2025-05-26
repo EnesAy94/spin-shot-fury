@@ -320,23 +320,61 @@ function checkBulletCollision(bulletX, bulletY) {
             if (bottle.type === 'red') {
                 checkAndUnlockAchievement('first_red_bottle');
                 resetCombo();
-                gameOver('red_bottle');
-            } else {
-                state.increaseCombo();
-                const multiplier = Math.min(Math.floor(state.getCurrentCombo() / 2) + 1, 5);
-                state.setComboMultiplier(multiplier);
-                if (multiplier >= 5) {
-                    checkAndUnlockAchievement('combo_master_x5');
-                }
-                const points = config.getBasePointsForLevel(state.getLevel()) * multiplier;
-                state.increaseScore(points);
+                if (!state.hasUsedRedBottleRewardThisGame()) {
+                    gameLogic.pauseGameForAd(); 
 
-                ui.updateComboDisplay();
-                ui.updateUI();
-                checkLevelComplete();
+                    ui.showConfirmationModal(
+                        'confirm_red_bottle_title',
+                        'confirm_red_bottle_message',
+                        () => { 
+                            main.showRewardedVideoAd(
+                                () => { 
+                                    console.log("Red bottle continuation granted.");
+                                    state.setUsedRedBottleRewardThisGame(true);
+                                    gameLogic.resumeGameAfterAd(true);
+                                },
+                                (wasShown) => {
+                                    console.log("Red bottle ad closed. Was shown:", wasShown);
+                                    const rewarded = state.hasUsedRedBottleRewardThisGame();
+                                    if (!rewarded) { 
+                                        console.log("Ad not rewarded after red bottle hit. Game Over.");
+                                        gameOver('red_bottle');
+                                    } else if (!state.isGameOver() && !state.isGameWon()) {
+                                        gameLogic.resumeGameAfterAd(true);
+                                    }
+                                },
+                                (error) => { 
+                                    console.error("Red bottle ad error:", error);
+                                    gameLogic.resumeGameAfterAd(false); 
+                                    gameOver('red_bottle');
+                                }
+                            );
+                        },
+                        () => { 
+                            console.log("User declined red bottle continuation. Game Over.");
+                            gameOver('red_bottle'); 
+                        }
+                    );
+                } else {
+                    console.log("Red bottle reward already used this game. Game Over.");
+                    gameOver('red_bottle');
+                }
+        } else {
+            state.increaseCombo();
+            const multiplier = Math.min(Math.floor(state.getCurrentCombo() / 2) + 1, 5);
+            state.setComboMultiplier(multiplier);
+            if (multiplier >= 5) {
+                checkAndUnlockAchievement('combo_master_x5');
             }
-            return true;
+            const points = config.getBasePointsForLevel(state.getLevel()) * multiplier;
+            state.increaseScore(points);
+
+            ui.updateComboDisplay();
+            ui.updateUI();
+            checkLevelComplete();
         }
+        return true;
     }
-    return false;
+}
+return false;
 }
