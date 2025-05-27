@@ -68,73 +68,160 @@ async function loadAllAssets() {
 
 // Displays an interstitial ad and handles audio pause/resume.
 async function showInterstitialAd(onAdClosedCallback) {
-    if (!ysdkInstance?.adv?.showFullscreenAdv) {
-        if (onAdClosedCallback) onAdClosedCallback(false);
+    if (state.areAdsRemoved()) {
+        console.log("Ads are removed by user. Skipping Interstitial Ad.");
+        if (onAdClosedCallback) {
+            onAdClosedCallback(false);
+        }
+        return;
+    }
+
+    if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showFullscreenAdv !== 'function') {
+        console.warn("Yandex SDK or Adv module/showFullscreenAdv not available. Skipping Interstitial ad.");
+        if (onAdClosedCallback) {
+            onAdClosedCallback(false);
+        }
         return;
     }
 
     audio.pauseAllAudioForAd();
+    console.log("Attempting to show Interstitial Ad...");
+
     try {
         await new Promise((resolve, reject) => {
             ysdkInstance.adv.showFullscreenAdv({
                 callbacks: {
-                    onClose: wasShown => {
+                    onOpen: () => {
+                        console.log("Interstitial Ad opened.");
+                    },
+                    onClose: function (wasShown) {
+                        console.log("Interstitial Ad closed. Was shown:", wasShown);
                         audio.resumeAllAudioAfterAd();
-                        if (onAdClosedCallback) onAdClosedCallback(wasShown);
+                        if (onAdClosedCallback) {
+                            onAdClosedCallback(wasShown);
+                        }
                         resolve(wasShown);
                     },
-                    onError: errorData => {
+                    onError: function (errorData) {
+                        console.error("Interstitial Ad error:", errorData);
                         audio.resumeAllAudioAfterAd();
-                        if (onAdClosedCallback) onAdClosedCallback(false);
+
+                        if (onAdClosedCallback) {
+                            onAdClosedCallback(false);
+                        }
+
                         reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
                     },
                     onOffline: () => {
+                        console.warn("Interstitial Ad offline. Cannot show ad.");
                         audio.resumeAllAudioAfterAd();
-                        if (onAdClosedCallback) onAdClosedCallback(false);
+                        if (onAdClosedCallback) {
+                            onAdClosedCallback(false);
+                        }
                         resolve(false);
                     }
                 }
             });
         });
     } catch (error) {
-        audio.resumeAllAudioAfterAd();
-        if (onAdClosedCallback) onAdClosedCallback(false);
+        console.error("Exception during showFullscreenAdv call or its callbacks:", error);
+        if (!audio.sfxPausedByAd && !audio.musicPausedByAd) {
+            audio.resumeAllAudioAfterAd();
+        }
+        if (onAdClosedCallback) {
+            onAdClosedCallback(false);
+        }
     }
 }
-
 // Displays a rewarded video ad and handles callbacks.
+/**
+ * @param {function} onRewarded 
+ * @param {function} [onClose] 
+ * @param {function} [onError] 
+ */
 export async function showRewardedVideoAd(onRewarded, onClose, onError) {
-    if (!ysdkInstance?.adv?.showRewardedVideo) {
-        if (onError) onError("SDK not available");
-        if (onClose) onClose(false);
+    console.log("Attempting to show Rewarded Video Ad or grant reward directly.");
+
+    if (state.areAdsRemoved()) {
+        console.log("Ads are removed by user. Granting reward directly for Rewarded Video action.");
+        if (onRewarded) {
+            try {
+                onRewarded();
+            } catch (e) {
+                console.error("Error in onRewarded callback after direct grant:", e);
+                if (onError) onError(e);
+            }
+        }
+        if (onClose) {
+            onClose(false);
+        }
+        return;
+    }
+
+    if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showRewardedVideo !== 'function') {
+        console.warn("Yandex SDK or Rewarded Video module/showRewardedVideo not available. Skipping ad.");
+        if (onError) {
+            onError("SDK_REWARDED_UNAVAILABLE");
+        }
+        if (onClose) {
+            onClose(false);
+        }
         return;
     }
 
     audio.pauseAllAudioForAd();
+    console.log("Showing Rewarded Video Ad via SDK...");
+
     try {
         await new Promise((resolve, reject) => {
             ysdkInstance.adv.showRewardedVideo({
                 callbacks: {
-                    onRewarded: () => {
-                        if (onRewarded) onRewarded();
+                    onOpen: () => {
+                        console.log('REWARDED_AD: Opened.');
                     },
-                    onClose: wasShown => {
+                    onRewarded: () => {
+                        console.log('REWARDED_AD: User was rewarded by watching ad!');
+                        if (onRewarded) {
+                            try {
+                                onRewarded();
+                            } catch (e) {
+                                console.error("Error in onRewarded callback after ad watch:", e);
+                            }
+                        }
+                    },
+                    onClose: (wasShown) => {
+                        console.log('REWARDED_AD: Closed. Was shown:', wasShown);
                         audio.resumeAllAudioAfterAd();
-                        if (onClose) onClose(wasShown);
+                        if (onClose) {
+                            onClose(wasShown);
+                        }
                         resolve(wasShown);
                     },
-                    onError: errorData => {
+                    onError: (errorData) => {
+                        console.error('REWARDED_AD: Error:', errorData);
                         audio.resumeAllAudioAfterAd();
-                        if (onError) onError(errorData);
-                        if (onClose) onClose(false);
-                        reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
+                        if (onError) {
+                            onError(errorData);
+                        }
+                        if (onClose) {
+                            onClose(false);
+                        }
+                        reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData))); // Promise'ı reddet
                     }
                 }
             });
         });
     } catch (error) {
-        audio.resumeAllAudioAfterAd();
-        if (onClose) onClose(false);
+        console.error("Exception during showRewardedVideo call or its callbacks:", error);
+        if (!audio.sfxPausedByAd && !audio.musicPausedByAd) {
+            audio.resumeAllAudioAfterAd();
+        }
+        if (onError) {
+            onError(error.message || "UNKNOWN_REWARDED_AD_EXCEPTION");
+        }
+        if (onClose) {
+            onClose(false);
+        }
     }
 }
 

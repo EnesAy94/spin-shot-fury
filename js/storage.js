@@ -144,3 +144,29 @@ export async function saveAudioSettings(settings) {
 export async function saveLanguage(langCode) {
     return updateAndSave('currentLanguage', langCode);
 }
+
+//----------------------
+export const REMOVE_ADS_PRODUCT_ID = 'no_ads';
+
+export async function checkAdsRemovedStatus(ysdkInstanceToUse) { 
+    let ysdk = ysdkInstanceToUse || _ysdk; 
+    if (!ysdk || !ysdk.payments || typeof ysdk.payments.getPurchases !== 'function') {
+        console.warn('Yandex SDK Payments module or getPurchases not available. Assuming ads are not removed.');
+        return false; 
+    }
+    try {
+        console.log('Attempting to fetch purchases...');
+        const purchases = await ysdk.payments.getPurchases();
+        console.log('Fetched purchases:', purchases);
+        if (purchases && purchases.find(purchase => purchase.productID === REMOVE_ADS_PRODUCT_ID )) {
+            console.log(`Product ${REMOVE_ADS_PRODUCT_ID} found in purchases.`);
+            return true; 
+        }
+        console.log(`Product ${REMOVE_ADS_PRODUCT_ID} not found or not purchased.`);
+        return false; 
+    } catch (error) {
+        console.error('Error fetching purchases:', error);
+        return false; 
+    }
+}
+

@@ -42,6 +42,7 @@ let _usedAmmoRewardThisGame = false;
 let _usedRedBottleRewardThisGame = false;
 let _trialWeaponId = null;
 let _isTrialWeaponActive = false;
+let _adsRemoved = false;
 
 // Getters
 export function getTrialWeaponId() { return _trialWeaponId; }
@@ -87,6 +88,7 @@ export function getSfxVolume() { return _sfxVolume; }
 export function getIsMuted() { return _isMuted; }
 export function getCurrentLanguage() { return _currentLanguage; }
 export function getCurrentGameMode() { return _currentGameMode; }
+export function areAdsRemoved() { return _adsRemoved; }
 
 // Setters and Updaters
 export function setUsedRedBottleRewardThisGame(value) { _usedRedBottleRewardThisGame = value; }
@@ -181,6 +183,10 @@ export function setSelectedWeaponId(weaponId) {
         return true;
     }
     return false;
+}
+export function setAdsRemoved(value) {
+    _adsRemoved = Boolean(value);
+    console.log("State: Ads removed status set to", _adsRemoved);
 }
 
 // Timer and Animation ID Management

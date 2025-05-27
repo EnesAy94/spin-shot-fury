@@ -152,5 +152,5 @@ export const ACHIEVEMENTS = [
     { id: 'score_10000_points', name: 'Point Hoarder', description: 'Achieve a score of 10,000 points in a single game.', icon: '💰' },
     { id: 'ten_perfect_games', name: 'Perfectionist x10', description: 'Complete the game 10 times flawlessly (no misses).', icon: '🌟' },
     { id: 'achievement_master', name: 'Achievement Master', description: 'Unlock all other achievements.', icon: '👑' },
-    { id: 'game_over_score_20k', name: 'Game Over!', description: 'Reach a score of 20,000 points. You broke the game!', icon: '💀', isHidden: true }
+    { id: 'game_over_score_30k', name: 'Game Over!', description: 'Reach a score of 30,000 points. You broke the game!', icon: '💀', isHidden: true }
 ];

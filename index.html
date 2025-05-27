@@ -109,7 +109,8 @@
                             data-translate="armory_unlock_button_text">Unlock</button>
                     </div>
                     <button id="armory-select-button" data-translate="armory_select_button_text">Select</button>
-                    <button id="armory-try-weapon-button" style="display: none;" data-translate="armory_try_weapon_button">Try for 1 Game (Ad)</button>
+                    <button id="armory-try-weapon-button" style="display: none;"
+                        data-translate="armory_try_weapon_button">Try for 1 Game (Ad)</button>
                 </div>
                 <button id="armory-next-button" class="nav-arrow">&gt;</button>
             </div>
@@ -175,6 +176,14 @@
                     <button id="mute-all-button" data-translate="settings_mute_button">Mute All</button>
                 </div>
             </div>
+            <div class="settings-section" id="remove-ads-section">
+                <h3 data-translate="settings_remove_ads_title">Advertisements</h3>
+                <div class="setting-item">
+                    <button id="remove-ads-button" data-translate="settings_remove_ads_button">Remove Ads</button>
+                </div>
+                <p id="ads-purchase-message" class="purchase-status-message" style="display: none;">Ads are
+                    already removed. Thank you!</p>
+            </div>
             <div class="settings-section">
                 <h3 data-translate="settings_language_title">Language</h3>
                 <div class="language-buttons">
@@ -221,7 +230,7 @@
             <button id="exit-button" data-translate="game_complete_exit">Exit</button>
         </div>
     </div>
-<!-- show Rewarded Video Ad  -->
+    <!-- show Rewarded Video Ad  -->
     <div id="confirmation-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <h3 id="confirmation-title">Confirm Action</h3>

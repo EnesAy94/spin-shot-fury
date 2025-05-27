@@ -58,6 +58,10 @@ const muteAllButton = document.getElementById('mute-all-button');
 const langButtons = document.querySelectorAll('.language-buttons .lang-button');
 const gameCompleteTitle = gameCompleteScreen?.querySelector('h2');
 const gameCompleteText = gameCompleteScreen?.querySelector('p:nth-of-type(1)');
+const removeAdsSection = document.getElementById('remove-ads-section');
+const removeAdsButton = document.getElementById('remove-ads-button');
+const adsRemovedMessage = document.getElementById('ads-removed-message');
+const adsPurchaseMessageEl = document.getElementById('ads-purchase-message');
 
 let currentConfirmCallback = null;
 let currentCancelCallback = null;
@@ -187,6 +191,7 @@ export function showSettingsScreen() {
     modeSelectScreen.style.display = 'none';
     hideGameCompleteScreen();
     updateSettingsUI();
+    updateAdsButtonVisibility();
     updateAllTextsForLanguage();
     manageMusic('menu');
     setCursor('default');
@@ -580,6 +585,85 @@ export function setupSettingsListeners() {
             }
         });
     });
+
+    if (removeAdsButton) {
+        removeAdsButton.addEventListener('click', async () => {
+            console.log("Remove Ads button clicked.");
+            showAdsPurchaseMessage('', '');
+            try {
+                const ysdk = storage.getYSDKInstance();
+                if (ysdk && ysdk.payments && typeof ysdk.payments.purchase === 'function') {
+                    const purchaseResult = await ysdk.payments.purchase({ id: storage.REMOVE_ADS_PRODUCT_ID });
+                    console.log('Purchase attempt result:', purchaseResult);
+
+                    if (purchaseResult && (purchaseResult.purchaseState === 'purchased' || (purchaseResult.productID === storage.REMOVE_ADS_PRODUCT_ID /*&& diğer başarı koşulları*/))) {
+                        console.log('Purchase successful for Remove Ads.');
+                        state.setAdsRemoved(true);
+                        updateAdsButtonVisibility();
+                        showAdsPurchaseMessage('settings_ads_already_removed', 'success');
+                    } else if (purchaseResult && purchaseResult.purchaseState === 'pending') {
+                         console.log('Purchase is pending. Waiting for confirmation.');
+                         showAdsPurchaseMessage('ads_purchase_pending', 'pending');
+                        
+                    } else {
+                        console.warn('Purchase was not successful or was cancelled by user.');
+                        showAdsPurchaseMessage('ads_purchase_failed', 'cancelled');
+                        
+                    }
+                } else {
+                    console.error("Yandex SDK Payments module or purchase function not available.");
+                    showAdsPurchaseMessage('ads_purchase_error_sdk', 'error');
+                }
+            } catch (error) {
+                console.error('Error during purchase process:', error);
+                showAdsPurchaseMessage('ads_purchase_error_generic', 'error');
+            } finally {
+            }
+        });
+    }
+    updateAdsButtonVisibility(); 
+}
+
+export function updateAdsButtonVisibility() { 
+    if (!removeAdsSection || !removeAdsButton || !adsRemovedMessage) return;
+
+    const ysdk = storage.getYSDKInstance();
+    if (!ysdk || !ysdk.payments) {
+        removeAdsSection.style.display = 'none';
+        return;
+    }
+    removeAdsSection.style.display = 'block'; 
+
+    if (state.areAdsRemoved()) {
+        removeAdsButton.style.display = 'none';
+        adsRemovedMessage.style.display = 'block';
+    } else {
+        removeAdsButton.style.display = 'block';
+        adsRemovedMessage.style.display = 'none';
+    }
+}
+
+/**
+ * @param {string} messageKey 
+ * @param {'success' | 'pending' | 'error' | 'cancelled' | ''} type 
+ * @param {boolean} isKey 
+ */
+export function showAdsPurchaseMessage(messageKey, type = '', isKey = true) {
+    if (!adsPurchaseMessageEl) return;
+
+    const messageText = isKey ? getText(messageKey) : messageKey;
+    adsPurchaseMessageEl.textContent = messageText;
+    adsPurchaseMessageEl.className = 'purchase-status-message'; 
+    if (type) {
+        adsPurchaseMessageEl.classList.add(type);
+    }
+    adsPurchaseMessageEl.style.display = messageText ? 'block' : 'none';
+
+     setTimeout(() => {
+         if (adsPurchaseMessageEl.textContent === messageText) { 
+             adsPurchaseMessageEl.style.display = 'none';
+        }
+     }, 5000); 
 }
 
 const achievementQueue = [];

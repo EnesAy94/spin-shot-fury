@@ -150,8 +150,8 @@ export async function gameWon() {
     if (config.TIME_LIMIT_SECONDS - timeLeft < 60) {
         checkAndUnlockAchievement('fast_clear_1_min');
     }
-    if (finalScore >= 20000) {
-        checkAndUnlockAchievement('game_over_score_20k');
+    if (finalScore >= 30000) {
+        checkAndUnlockAchievement('game_over_score_30k');
     }
     if (finalScore >= 10000) {
         checkAndUnlockAchievement('score_10000_points');
@@ -294,11 +294,19 @@ export async function loadProgressAndInitialize() {
     state.setMusicVolume(savedData.musicVolume);
     state.setSfxVolume(savedData.sfxVolume);
     state.setIsMuted(savedData.isMuted);
-    
+
     if (savedData.currentLanguage !== state.getCurrentLanguage()) {
         state.setCurrentLanguage(savedData.currentLanguage);
     }
-    
+
+    const ysdk = storage.getYSDKInstance();
+    if (ysdk) {
+        const adsShouldBeRemoved = await storage.checkAdsRemovedStatus(ysdk);
+        state.setAdsRemoved(adsShouldBeRemoved);
+    } else {
+        state.setAdsRemoved(false);
+    }
+
     const weaponId = savedData.unlockedWeaponIds.includes(savedData.selectedWeaponId)
         ? savedData.selectedWeaponId
         : config.WEAPONS[0].id;
