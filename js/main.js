@@ -11,6 +11,33 @@ import * as audio from './audio.js';
 import { loadSounds, ensureAudioContext, notifyUserInteractionForMusic, applyCurrentAudioSettingsWAA } from './audio.js';
 import { NATIVE_WIDTH, NATIVE_HEIGHT, MENU_NATIVE_WIDTH, MENU_NATIVE_HEIGHT } from './config.js';
 
+function detectUserLanguage(ysdk) {
+    let detectedLang = 'en';
+
+    if (ysdk && ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang) {
+        const yandexLang = ysdk.environment.i18n.lang.substring(0, 2).toLowerCase();
+        if (['en', 'tr', 'ru'].includes(yandexLang)) {
+            return yandexLang;
+        }
+    }
+
+    if (navigator.languages && navigator.languages.length) {
+        for (const lang of navigator.languages) {
+            const browserLang = lang.substring(0, 2).toLowerCase();
+            if (['en', 'tr', 'ru'].includes(browserLang)) {
+                return browserLang;
+            }
+        }
+    } else if (navigator.language) {
+        const browserLang = navigator.language.substring(0, 2).toLowerCase();
+        if (['en', 'tr', 'ru'].includes(browserLang)) {
+            return browserLang;
+        }
+    }
+
+    return detectedLang;
+}
+
 let ysdkInstance = null;
 
 const ASSETS_TO_LOAD = [
@@ -252,13 +279,6 @@ export async function showRewardedVideoAd(onRewarded, onClose, onError) {
 
 // Initializes the game by loading progress, audio, and setting up UI and events.
 async function initGame() {
-    try {
-        ysdkInstance = await YaGames.init();
-        storage.setYandexSDK(ysdkInstance);
-    } catch (e) {
-        storage.setYandexSDK(null);
-    }
-
     await gameLogic.loadProgressAndInitialize();
     applyCurrentAudioSettingsWAA();
     ui.updateAllTextsForLanguage();
@@ -285,22 +305,27 @@ async function initGame() {
 
 // Main entry point for game initialization.
 async function main() {
-    const savedProgress = await storage.loadGameProgress();
-    if (savedProgress.currentLanguage) {
-        state.setCurrentLanguage(savedProgress.currentLanguage);
+    try {
+        ysdkInstance = await YaGames.init();
+        storage.setYandexSDK(ysdkInstance);
+    } catch (e) {
+        console.warn('Yandex SDK could not be initialized.', e);
+        ysdkInstance = null;
+        storage.setYandexSDK(null);
     }
-    ui.updateAllTextsForLanguage();
 
+    const initialUserLang = detectUserLanguage(ysdkInstance);
+    state.setCurrentLanguage(initialUserLang);
     try {
         await loadAllAssets();
         await initGame();
     } catch (error) {
-        console.error("Error during asset loading or game initialization:", error);
         const loadingText = document.querySelector('#loading-screen .loading-text');
         if (loadingText) {
             loadingText.textContent = 'Error loading game assets. Please refresh.';
             loadingText.style.color = 'red';
         }
+        console.error("Error during asset loading or game initialization:", error);
     }
 }
 
