@@ -7,6 +7,7 @@ let userHasInteracted = false; // Kullanıcı etkileşimi oldu mu?
 let sfxPausedByAd = false; // Reklam için SFX ve AudioContext duraklatıldı mı?
 let musicPausedByAd = false; // Reklam için Müzik duraklatıldı mı?
 let musicShouldBePlayingType = null; // Reklam sonrası hangi müzik tipi çalmalı?
+let isPageVisible = true;
 
 // --- Ses Efektleri (SFX) Bufferları ---
 let gunshotBuffer = null;
@@ -21,6 +22,59 @@ let activeMusicTypeWAA = null; // 'menu', 'game' veya null
 
 const MENU_MUSIC_PATH = 'audio/menu.mp3';
 const GAME_MUSIC_PATH = 'audio/playgame.mp3';
+
+// --- Page Visibility API Entegrasyonu ---
+function handleVisibilityChange() {
+    ensureAudioContext(); // AudioContext'in var olduğundan emin ol
+
+    if (document.hidden) {
+        isPageVisible = false;
+        console.log("Page is hidden. Pausing audio.");
+        if (audioContext && audioContext.state === 'running') {
+            // musicShouldBePlayingType'ı burada saklamaya gerek yok,
+            // çünkü pauseAllAudioForAd zaten bu işi yapıyor ve sfxPausedByAd ile benzer.
+            // Önemli olan, sayfa tekrar görünür olduğunda doğru müziğin devam etmesi.
+            // Eğer bir müzik çalıyorsa, tipini sakla.
+            if (currentMusicSourceNode && activeMusicTypeWAA) {
+                musicShouldBePlayingType = activeMusicTypeWAA; // Hangi tipin çalması gerektiğini sakla
+            }
+
+            stopCurrentMusicWAA(true); // Müziği durdur (tipi koru)
+            // Eğer AudioContext'i de askıya almak istiyorsanız:
+            audioContext.suspend().then(() => console.log("AudioContext suspended due to page visibility."));
+        }
+    } else {
+        isPageVisible = true;
+        console.log("Page is visible. Resuming audio.");
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                console.log("AudioContext resumed due to page visibility.");
+                // Sayfa görünür olunca ve mute değilse, saklanan veya aktif müziği çal
+                if (musicShouldBePlayingType && !state.getIsMuted()) {
+                    manageMusicWAA(musicShouldBePlayingType);
+                } else if (activeMusicTypeWAA && !currentMusicSourceNode && !state.getIsMuted()) {
+                    // Eğer musicShouldBePlayingType set edilmemişse (örn. ilk açılışta sayfa gizliyse)
+                    // ama çalması gereken bir aktif tip varsa.
+                    manageMusicWAA(activeMusicTypeWAA);
+                }
+                applyCurrentAudioSettingsWAA(); // Ses ayarlarını uygula
+            }).catch(e => console.error("Error resuming AudioContext on visibility change:", e));
+        } else if (audioContext && audioContext.state === 'running') {
+            // Context zaten çalışıyorsa ama müzik durmuşsa (örn. pauseAllAudioForAd gibi bir durumdan sonra sayfa gizlenip açıldıysa)
+            if (musicShouldBePlayingType && !currentMusicSourceNode && !state.getIsMuted()) {
+                manageMusicWAA(musicShouldBePlayingType);
+            } else if (activeMusicTypeWAA && !currentMusicSourceNode && !state.getIsMuted()) {
+                manageMusicWAA(activeMusicTypeWAA);
+            }
+            applyCurrentAudioSettingsWAA();
+        }
+    }
+}
+
+// Visibility change olay dinleyicisini ekle
+if (typeof document.hidden !== "undefined") { // API desteğini kontrol et
+    document.addEventListener("visibilitychange", handleVisibilityChange, false);
+}
 
 // --- AudioContext Başlatma ve Ses Yükleme ---
 
@@ -157,10 +211,16 @@ export function manageMusicWAA(type) {
         console.warn("Cannot manage WAA music: AudioContext or MusicGainNode not ready.");
         return;
     }
-    
-    // Reklam sırasındaysa veya kullanıcı etkileşimi olmadıysa müzik başlatma.
-    // Ancak ses ayarı değiştiğinde (örn. mute açıldı) bu fonksiyon çağrılabilir,
-    // bu yüzden reklam kontrolü burada da olmalı.
+
+    if (!isPageVisible && type !== 'stop') {
+        console.log(`Music manageMusicWAA(${type}) deferred, page not visible.`);
+        // Çalması gereken tipi sakla ki sayfa görünür olunca başlasın
+        if (type !== activeMusicTypeWAA) { // Zaten saklanmışsa tekrar üzerine yazma
+            musicShouldBePlayingType = type;
+        }
+        return;
+    }
+
     if (sfxPausedByAd && type !== 'stop') { // sfxPausedByAd genel duraklatma
         musicShouldBePlayingType = type; // Duraklatıldı ama bu tip çalmalıydı
         console.log(`Music playback for ${type} deferred due to ad pause.`);
@@ -171,7 +231,7 @@ export function manageMusicWAA(type) {
     const isMuted = state.getIsMuted();
     const newVolume = isMuted ? 0 : state.getMasterVolume() * state.getMusicVolume();
     if (musicGainNode.gain.value !== newVolume) {
-         musicGainNode.gain.setValueAtTime(newVolume, audioContext.currentTime);
+        musicGainNode.gain.setValueAtTime(newVolume, audioContext.currentTime);
     }
 
     // Eğer istenen müzik zaten çalıyorsa (ve mute durumu değişmediyse) bir şey yapma
@@ -191,7 +251,7 @@ export function manageMusicWAA(type) {
     if (type !== activeMusicTypeWAA || type === 'stop' || isMuted) {
         stopCurrentMusicWAA(type === activeMusicTypeWAA && isMuted); // Eğer aynı tip mute ediliyorsa tipi koru
     }
-    
+
     if (isMuted || type === 'stop') {
         activeMusicTypeWAA = (type === 'stop' ? null : activeMusicTypeWAA); // 'stop' ise tipi sıfırla
         console.log(isMuted ? "Music remains stopped (muted)." : "All WAA music stopped by command.");
@@ -217,9 +277,9 @@ export function manageMusicWAA(type) {
             return;
         }
         if (audioContext.state === 'suspended') {
-             console.warn(`Cannot play WAA music ${type}, AudioContext is suspended.`);
-             activeMusicTypeWAA = type; // Kullanıcı etkileşiminden sonra çalması için tipi sakla
-             return;
+            console.warn(`Cannot play WAA music ${type}, AudioContext is suspended.`);
+            activeMusicTypeWAA = type; // Kullanıcı etkileşiminden sonra çalması için tipi sakla
+            return;
         }
 
         try {
@@ -301,6 +361,16 @@ export function resumeAllAudioAfterAd() {
 
         resumeContextPromise.then(() => {
             console.log("AudioContext resumed after ad (within promise).");
+
+            if (!isPageVisible) {
+                console.log("Page not visible after ad, music resume deferred.");
+                musicPausedByAd = false; // Flag'i temizle, ama müziği başlatma
+                // musicShouldBePlayingType zaten saklanmış olmalı
+                applyCurrentAudioSettingsWAA(); // Ses ayarlarını uygula (örn. mute ise gain 0 olur)
+                resolve();
+                return;
+            }
+
             if (musicPausedByAd && musicShouldBePlayingType) {
                 console.log("Attempting to resume WAA music type after ad:", musicShouldBePlayingType);
                 if (!state.getIsMuted()) {
@@ -334,9 +404,9 @@ export function notifyUserInteractionForMusic() {
             if (state.isMenuActive() && !currentMusicSourceNode && !sfxPausedByAd && !state.getIsMuted()) {
                 console.log("Attempting to play menu music on first user interaction.");
                 manageMusicWAA('menu');
-            } else if (state.isMenuActive() && !currentMusicSourceNode && !sfxPausedByAd && state.getIsMuted()){
-                 console.log("Menu music not started on interaction because master mute is on.");
-                 activeMusicTypeWAA = 'menu'; // Mute açılırsa çalması için tipi ayarla
+            } else if (state.isMenuActive() && !currentMusicSourceNode && !sfxPausedByAd && state.getIsMuted()) {
+                console.log("Menu music not started on interaction because master mute is on.");
+                activeMusicTypeWAA = 'menu'; // Mute açılırsa çalması için tipi ayarla
             }
         }
     } else {
