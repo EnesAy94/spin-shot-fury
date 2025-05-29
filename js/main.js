@@ -340,6 +340,27 @@ function setupEventListeners() {
             handler();
         });
     });
+
+    const nonInteractiveScreenIds = [
+        'main-menu', 'leaderboard-screen', 'mode-select-screen', 'armory-screen',
+        'achievements-screen', 'how-to-play-screen', 'settings-screen', 'game-wrapper',
+        'game-complete-screen', 'loading-screen', 'orientation-blocker', 'confirmation-modal'
+    ];
+
+    nonInteractiveScreenIds.forEach(screenId => {
+        const screenElement = document.getElementById(screenId);
+        if (screenElement) {
+            screenElement.addEventListener('contextmenu', function(event) {
+                if (!(event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA')) {
+                    event.preventDefault();
+                }
+            });
+        }
+    });
+
+    document.addEventListener('contextmenu', function(event) {
+        event.preventDefault();
+    });
 }
 
 // Handles in-game exit by stopping game loops and showing main menu.

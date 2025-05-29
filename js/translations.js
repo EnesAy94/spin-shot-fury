@@ -416,7 +416,7 @@ export const translations = {
         'orientation_warning_portrait_sub': '(Игра лучше всего отображается в вертикальном режиме)',
         'loading_text': 'Загрузка...',
         'settings_remove_ads_title': 'Реклама', 
-        'settings_remove_ads_button': 'Убрать рекламу', 
+        'settings_remove_ads_button': 'Удалить рекламу', 
         'settings_ads_already_removed': 'Реклама уже убрана. Спасибо!',
         'ads_purchase_pending': 'Покупка в ожидании. Пожалуйста, дождитесь подтверждения от Яндекса.',
         'ads_purchase_failed': 'Покупка не удалась или была отменена. Пожалуйста, попробуйте еще раз.',
