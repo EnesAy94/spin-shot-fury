@@ -8,7 +8,7 @@ import * as storage from './storage.js';
 import * as gameLogic from './gameLogic.js';
 import * as playerAction from './playerAction.js';
 import * as audio from './audio.js';
-import { loadSounds, ensureAudioContext, notifyUserInteractionForMusic, applyCurrentAudioSettings, ensureMusicElementsReady } from './audio.js';
+import { loadSounds, ensureAudioContext, notifyUserInteractionForMusic, applyCurrentAudioSettingsWAA } from './audio.js';
 import { NATIVE_WIDTH, NATIVE_HEIGHT, MENU_NATIVE_WIDTH, MENU_NATIVE_HEIGHT } from './config.js';
 
 let ysdkInstance = null;
@@ -28,11 +28,12 @@ const ASSETS_TO_LOAD = [
 const progressBar = document.getElementById('loading-progress-bar');
 const progressPercentageText = document.getElementById('loading-progress-percentage');
 let assetsLoadedCount = 0;
+const TOTAL_LOADING_STEPS = ASSETS_TO_LOAD.length + 1;
 
 // Updates loading progress bar and percentage text.
 function updateProgress() {
     assetsLoadedCount++;
-    const percentage = Math.round((assetsLoadedCount / (ASSETS_TO_LOAD.length + 2)) * 100);
+    const percentage = Math.round((assetsLoadedCount / TOTAL_LOADING_STEPS) * 100);
     if (progressBar) progressBar.style.width = `${percentage}%`;
     if (progressPercentageText) progressPercentageText.textContent = `${percentage}%`;
 }
@@ -56,14 +57,38 @@ async function preloadAsset(src) {
 
 // Loads all assets, including images, sounds, and music elements.
 async function loadAllAssets() {
-    const assetPromises = ASSETS_TO_LOAD.map(preloadAsset);
-    assetPromises.push(loadSounds().then(updateProgress));
-    assetPromises.push(new Promise(resolve => {
-        ensureMusicElementsReady();
-        updateProgress();
-        resolve();
-    }));
-    await Promise.all(assetPromises);
+    console.log("Starting asset loading...");
+    const assetLoadPromises = ASSETS_TO_LOAD.map(src => 
+        preloadAsset(src) // preloadAsset zaten updateProgress çağırıyor varsayıyorum
+    );
+
+    // loadSounds da bir Promise döndürür ve kendi içinde seslerin yüklenmesini yönetir.
+    // Başarılı olursa updateProgress çağrılır.
+    const soundLoadPromise = loadSounds().then(() => {
+        updateProgress(); // loadSounds tamamlandığında ilerlemeyi güncelle
+        console.log("Sounds and music loaded successfully.");
+    }).catch(error => {
+        console.error("Error loading sounds or music:", error);
+        updateProgress(); // Hata olsa bile adımı tamamlanmış say (opsiyonel)
+    });
+
+    assetLoadPromises.push(soundLoadPromise);
+
+    try {
+        await Promise.all(assetLoadPromises);
+        console.log("All assets and sounds/music setup complete.");
+    } catch (error) {
+        console.error("An error occurred during the loading process:", error);
+        // Kullanıcıya bir hata mesajı göstermek ve yüklemeyi durdurmak iyi olabilir.
+        const loadingText = document.querySelector('#loading-screen .loading-text');
+        if (loadingText) {
+            loadingText.textContent = 'Error loading game assets. Please refresh.';
+            loadingText.style.color = 'red';
+        }
+        // Daha fazla ilerlemeyi engelle
+        return Promise.reject(error);
+    }
+    console.log("loadAllAssets function finished.");
 }
 
 // Displays an interstitial ad and handles audio pause/resume.
@@ -96,30 +121,30 @@ async function showInterstitialAd(onAdClosedCallback) {
                     },
                     onClose: function (wasShown) {
                         console.log("Interstitial Ad closed. Was shown:", wasShown);
-                        audio.resumeAllAudioAfterAd();
+                        audio.resumeAllAudioAfterAd().then(() => {
                         if (onAdClosedCallback) {
                             onAdClosedCallback(wasShown);
                         }
                         resolve(wasShown);
-                    },
+                    })},
                     onError: function (errorData) {
                         console.error("Interstitial Ad error:", errorData);
-                        audio.resumeAllAudioAfterAd();
+                        audio.resumeAllAudioAfterAd().then(() => {
 
                         if (onAdClosedCallback) {
                             onAdClosedCallback(false);
                         }
 
                         reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
-                    },
+                    })},
                     onOffline: () => {
                         console.warn("Interstitial Ad offline. Cannot show ad.");
-                        audio.resumeAllAudioAfterAd();
+                        audio.resumeAllAudioAfterAd().then(() => {
                         if (onAdClosedCallback) {
                             onAdClosedCallback(false);
                         }
                         resolve(false);
-                    }
+                    })}
                 }
             });
         });
@@ -235,7 +260,7 @@ async function initGame() {
     }
 
     await gameLogic.loadProgressAndInitialize();
-    applyCurrentAudioSettings();
+    applyCurrentAudioSettingsWAA();
     ui.updateAllTextsForLanguage();
 
     ui.setupSettingsListeners();
@@ -350,7 +375,7 @@ function setupEventListeners() {
     nonInteractiveScreenIds.forEach(screenId => {
         const screenElement = document.getElementById(screenId);
         if (screenElement) {
-            screenElement.addEventListener('contextmenu', function(event) {
+            screenElement.addEventListener('contextmenu', function (event) {
                 if (!(event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA')) {
                     event.preventDefault();
                 }
@@ -358,7 +383,7 @@ function setupEventListeners() {
         }
     });
 
-    document.addEventListener('contextmenu', function(event) {
+    document.addEventListener('contextmenu', function (event) {
         event.preventDefault();
     });
 }
@@ -373,6 +398,7 @@ async function handleInGameExit() {
         state.cancelAnimationFrame();
         state.cancelSpinAnimationFrame();
         state.clearShotTimeout();
+        state.setMenuActive(true);
         ui.showMainMenu();
     });
 }

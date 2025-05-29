@@ -8,7 +8,7 @@ import * as storage from './storage.js';
 import * as gameLogic from './gameLogic.js';
 import { translations } from './translations.js';
 import { WEAPONS, formatTime, ACHIEVEMENTS } from './config.js';
-import { manageMusic, applyCurrentAudioSettings } from './audio.js';
+import { manageMusicWAA, applyCurrentAudioSettingsWAA } from './audio.js';
 
 // DOM Elements
 export const mainMenuElement = document.getElementById('main-menu');
@@ -108,7 +108,7 @@ export function showLeaderboardScreen() {
     modeSelectScreen.style.display = 'none';
     hideGameCompleteScreen();
     if (leaderboardScreen) leaderboardScreen.style.display = 'flex';
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
     loadAndDisplayLeaderboard();
 }
@@ -124,7 +124,7 @@ export function showMainMenu() {
     leaderboardScreen.style.display = 'none';
     state.resetLostGamePlayAgainCount();
     hideGameCompleteScreen();
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
     updateMenuHighScore();
 }
@@ -136,7 +136,7 @@ export function hideMainMenuAndShowGame() {
     achievementsScreen.style.display = 'none';
     modeSelectScreen.style.display = 'none';
     hideGameCompleteScreen();
-    manageMusic('game');
+    manageMusicWAA('game');
     setCursor('crosshair');
 }
 
@@ -150,7 +150,7 @@ export function showArmoryScreen() {
     modeSelectScreen.style.display = 'none';
     hideGameCompleteScreen();
     updateArmoryDisplay();
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
 }
 
@@ -164,7 +164,7 @@ export function showAchievementsScreen() {
     modeSelectScreen.style.display = 'none';
     hideGameCompleteScreen();
     populateAchievementsList();
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
 }
 
@@ -177,7 +177,7 @@ export function showHowToPlayScreen() {
     settingsScreen.style.display = 'none';
     modeSelectScreen.style.display = 'none';
     hideGameCompleteScreen();
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
 }
 
@@ -193,7 +193,7 @@ export function showSettingsScreen() {
     updateSettingsUI();
     updateAdsButtonVisibility();
     updateAllTextsForLanguage();
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
 }
 
@@ -216,7 +216,7 @@ export function showGameCompleteScreen(titleKey, textKey, finalScore, additional
     if (playAgainBtn) playAgainBtn.textContent = getText('game_complete_play_again');
     if (exitBtn) exitBtn.textContent = getText('game_complete_exit');
 
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
 }
 
@@ -233,7 +233,7 @@ export function showModeSelectScreen() {
     settingsScreen.style.display = 'none';
     modeSelectScreen.style.display = 'flex';
     hideGameCompleteScreen();
-    manageMusic('menu');
+    manageMusicWAA('menu');
     setCursor('default');
 }
 
@@ -547,7 +547,7 @@ export function setupSettingsListeners() {
         const newVolume = event.target.value;
         state.setMasterVolume(newVolume);
         masterVolumeValueDisplay.textContent = `${Math.round(newVolume * 100)}%`;
-        applyCurrentAudioSettings();
+        applyCurrentAudioSettingsWAA();
     });
     masterVolumeSlider.addEventListener('change', saveAudioSettings);
 
@@ -555,7 +555,7 @@ export function setupSettingsListeners() {
         const newVolume = event.target.value;
         state.setMusicVolume(newVolume);
         musicVolumeValueDisplay.textContent = `${Math.round(newVolume * 100)}%`;
-        applyCurrentAudioSettings();
+        applyCurrentAudioSettingsWAA();
     });
     musicVolumeSlider.addEventListener('change', saveAudioSettings);
 
@@ -563,7 +563,7 @@ export function setupSettingsListeners() {
         const newVolume = event.target.value;
         state.setSfxVolume(newVolume);
         sfxVolumeValueDisplay.textContent = `${Math.round(newVolume * 100)}%`;
-        applyCurrentAudioSettings();
+        applyCurrentAudioSettingsWAA();
     });
     sfxVolumeSlider.addEventListener('change', saveAudioSettings);
 
@@ -571,7 +571,7 @@ export function setupSettingsListeners() {
         const newMuteState = !state.getIsMuted();
         state.setIsMuted(newMuteState);
         muteAllButton.textContent = getText(newMuteState ? 'settings_unmute_button' : 'settings_mute_button');
-        applyCurrentAudioSettings();
+        applyCurrentAudioSettingsWAA();
         saveAudioSettings();
     });
 
