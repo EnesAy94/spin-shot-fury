@@ -1093,6 +1093,8 @@ body {
     -ms-user-select: none;
     user-select: none;
     cursor: default;
+    -webkit-touch-callout: none; 
+    -webkit-tap-highlight-color: transparent;
 }
 
 @keyframes lockShake {
@@ -1392,6 +1394,8 @@ body {
     -ms-user-select: none;
     user-select: none;
     cursor: default;
+    -webkit-touch-callout: none; 
+    -webkit-tap-highlight-color: transparent;
 }
 
 .achievement-card:not(.unlocked) .achievement-icon {
@@ -2615,6 +2619,8 @@ input[type=range]::-ms-fill-upper {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -2624,4 +2630,6 @@ button,
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
