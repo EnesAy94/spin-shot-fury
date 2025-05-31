@@ -319,7 +319,8 @@ body {
 /* In-Game UI Elements */
 #game-info {
     position: absolute;
-    top: clamp(0.5rem, 2vw, 1rem);
+    top: clamp(0.5rem, 2vw, 1.5rem);
+    left: clamp(0.5rem, 2vw, 1.5rem);
     transform: translateX(-50%);
     color: #FFD700;
     font-family: 'Oswald', sans-serif;
@@ -332,7 +333,8 @@ body {
 
 #timer-display {
     position: absolute;
-    top: clamp(2.5rem, 8vw, 3.125rem);
+    top: clamp(2.5rem, 8vw, 3.5rem);
+    left: clamp(0.5rem, 2vw, 1.5rem);
     transform: translateX(-50%);
     color: #FFD700;
     font-family: 'Oswald', sans-serif;
@@ -345,8 +347,8 @@ body {
 
 #combo-display {
     position: absolute;
-    right: clamp(0.5rem, 2vw, 1.5rem);
-    top: clamp(3.5rem, 10vw, 4.375rem);
+    left: clamp(0.5rem, 2vw, 1.5rem);
+    top: clamp(8.5rem, 12vw, 8.375rem);
     color: #FF9800;
     font-family: 'Oswald', sans-serif;
     font-size: clamp(1rem, 4vw, 1.875rem);
@@ -1492,6 +1494,7 @@ body {
 #game-high-score-display {
     position: absolute;
     top: clamp(5.5rem, 10vw, 6.125rem);
+    left: clamp(0.5rem, 2vw, 1.5rem);
     transform: translate(-50%, -50%);
     color: #FFD700;
     font-family: 'Arial', sans-serif;

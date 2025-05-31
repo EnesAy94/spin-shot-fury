@@ -12,11 +12,14 @@ import { loadSounds, ensureAudioContext, notifyUserInteractionForMusic, applyCur
 import { NATIVE_WIDTH, NATIVE_HEIGHT, MENU_NATIVE_WIDTH, MENU_NATIVE_HEIGHT } from './config.js';
 
 function detectUserLanguage(ysdk) {
+    console.log("Detecting language...");
     let detectedLang = 'en';
 
     if (ysdk && ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang) {
         const yandexLang = ysdk.environment.i18n.lang.substring(0, 2).toLowerCase();
+        console.log("Yandex SDK raw lang:", yandexLang);
         if (['en', 'tr', 'ru'].includes(yandexLang)) {
+            console.log("Using Yandex SDK lang:", yandexLang);
             return yandexLang;
         }
     }
@@ -34,7 +37,7 @@ function detectUserLanguage(ysdk) {
             return browserLang;
         }
     }
-
+    console.log("Fallback/Default lang:", detectedLang);
     return detectedLang;
 }
 
@@ -85,7 +88,7 @@ async function preloadAsset(src) {
 // Loads all assets, including images, sounds, and music elements.
 async function loadAllAssets() {
     console.log("Starting asset loading...");
-    const assetLoadPromises = ASSETS_TO_LOAD.map(src => 
+    const assetLoadPromises = ASSETS_TO_LOAD.map(src =>
         preloadAsset(src) // preloadAsset zaten updateProgress çağırıyor varsayıyorum
     );
 
@@ -149,29 +152,32 @@ async function showInterstitialAd(onAdClosedCallback) {
                     onClose: function (wasShown) {
                         console.log("Interstitial Ad closed. Was shown:", wasShown);
                         audio.resumeAllAudioAfterAd().then(() => {
-                        if (onAdClosedCallback) {
-                            onAdClosedCallback(wasShown);
-                        }
-                        resolve(wasShown);
-                    })},
+                            if (onAdClosedCallback) {
+                                onAdClosedCallback(wasShown);
+                            }
+                            resolve(wasShown);
+                        })
+                    },
                     onError: function (errorData) {
                         console.error("Interstitial Ad error:", errorData);
                         audio.resumeAllAudioAfterAd().then(() => {
 
-                        if (onAdClosedCallback) {
-                            onAdClosedCallback(false);
-                        }
+                            if (onAdClosedCallback) {
+                                onAdClosedCallback(false);
+                            }
 
-                        reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
-                    })},
+                            reject(new Error(typeof errorData === 'string' ? errorData : JSON.stringify(errorData)));
+                        })
+                    },
                     onOffline: () => {
                         console.warn("Interstitial Ad offline. Cannot show ad.");
                         audio.resumeAllAudioAfterAd().then(() => {
-                        if (onAdClosedCallback) {
-                            onAdClosedCallback(false);
-                        }
-                        resolve(false);
-                    })}
+                            if (onAdClosedCallback) {
+                                onAdClosedCallback(false);
+                            }
+                            resolve(false);
+                        })
+                    }
                 }
             });
         });
@@ -277,10 +283,64 @@ export async function showRewardedVideoAd(onRewarded, onClose, onError) {
     }
 }
 
+
+
+// Main entry point for game initialization.
+async function main() {
+    try {
+        ysdkInstance = await YaGames.init();
+        storage.setYandexSDK(ysdkInstance);
+    } catch (e) {
+        console.warn('Yandex SDK could not be initialized.', e);
+        ysdkInstance = null;
+        storage.setYandexSDK(null);
+    }
+
+const detectedInitialLang = detectUserLanguage(ysdkInstance);
+    console.log("Main: Detected initial lang (SDK/Browser):", detectedInitialLang); // LOG
+    try {
+        await loadAllAssets();
+        await initGame();
+    } catch (error) {
+        const loadingText = document.querySelector('#loading-screen .loading-text');
+        if (loadingText) {
+            loadingText.textContent = 'Error loading game assets. Please refresh.';
+            loadingText.style.color = 'red';
+        }
+        console.error("Error during asset loading or game initialization:", error);
+    }
+}
+
 // Initializes the game by loading progress, audio, and setting up UI and events.
-async function initGame() {
-    await gameLogic.loadProgressAndInitialize();
-    applyCurrentAudioSettingsWAA();
+async function initGame(detectedInitialLang) {
+    // Önce kayıtlı verileri ve dili yükle
+    const savedProgress = await gameLogic.loadProgressAndInitialize();
+    // gameLogic.loadProgressAndInitialize'ın state'i güncellediğini varsayıyoruz.
+    // Veya alternatif olarak, loadProgressAndInitialize sadece veriyi döndürsün,
+    // state güncellemesini burada yapalım.
+    // Şimdiki state.js yapısına göre, loadProgressAndInitialize state'i güncelliyor.
+
+    let finalLangToSet;
+    const langFromStorage = state.getCurrentLanguage(); // loadProgressAndInitialize'ın set ettiği dil
+    console.log("initGame: Language from storage (after loadProgress):", langFromStorage); // LOG
+
+    if (langFromStorage && ['en', 'tr', 'ru'].includes(langFromStorage) && langFromStorage !== 'en') {
+        // Eğer storage'dan geçerli ve 'en' dışında bir dil geldiyse, onu kullan (kullanıcının son seçimi).
+        // Veya storage'dan 'en' gelse bile, eğer kullanıcı özellikle 'en' seçmişse bu da geçerlidir.
+        // Kısacası, storage'dan gelen geçerli bir dil varsa, onu kullan.
+        finalLangToSet = langFromStorage;
+        console.log("initGame: Using language from storage:", finalLangToSet); // LOG
+    } else {
+        // Storage'da geçerli bir dil yoksa (veya varsayılan 'en' ise ve biz SDK/tarayıcıyı tercih ediyorsak)
+        // o zaman SDK/Tarayıcı'dan algılanan dili kullan.
+        finalLangToSet = detectedInitialLang;
+        console.log("initGame: Using detected initial lang (SDK/Browser) as fallback:", finalLangToSet); // LOG
+    }
+
+    if (state.getCurrentLanguage() !== finalLangToSet) {
+      state.setCurrentLanguage(finalLangToSet);
+    }
+    console.log("initGame: Final language set in state:", state.getCurrentLanguage());    applyCurrentAudioSettingsWAA();
     ui.updateAllTextsForLanguage();
 
     ui.setupSettingsListeners();
@@ -301,32 +361,6 @@ async function initGame() {
             }
         }
     });
-}
-
-// Main entry point for game initialization.
-async function main() {
-    try {
-        ysdkInstance = await YaGames.init();
-        storage.setYandexSDK(ysdkInstance);
-    } catch (e) {
-        console.warn('Yandex SDK could not be initialized.', e);
-        ysdkInstance = null;
-        storage.setYandexSDK(null);
-    }
-
-    const initialUserLang = detectUserLanguage(ysdkInstance);
-    state.setCurrentLanguage(initialUserLang);
-    try {
-        await loadAllAssets();
-        await initGame();
-    } catch (error) {
-        const loadingText = document.querySelector('#loading-screen .loading-text');
-        if (loadingText) {
-            loadingText.textContent = 'Error loading game assets. Please refresh.';
-            loadingText.style.color = 'red';
-        }
-        console.error("Error during asset loading or game initialization:", error);
-    }
 }
 
 // Sets up event listeners for game interactions and UI navigation.

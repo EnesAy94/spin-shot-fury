@@ -295,8 +295,14 @@ export async function loadProgressAndInitialize() {
     state.setSfxVolume(savedData.sfxVolume);
     state.setIsMuted(savedData.isMuted);
 
-    if (savedData.currentLanguage !== state.getCurrentLanguage()) {
+    if (savedData.currentLanguage && state.getCurrentLanguage() !== savedData.currentLanguage) {
+        // Eğer main() içinde bir dil set edildiyse ve storage'dan gelen farklı ve geçerliyse, storage'daki kazanır.
         state.setCurrentLanguage(savedData.currentLanguage);
+        console.log("loadProgressAndInitialize: Language updated from savedData:", savedData.currentLanguage); // LOG
+    } else if (!savedData.currentLanguage) {
+        // Eğer storage'da dil yoksa, main() içinde set edilen dil (SDK/tarayıcı) geçerli kalır.
+        // Bu durumda state.setCurrentLanguage çağrılmaz.
+        console.log("loadProgressAndInitialize: No language in savedData, keeping current state language:", state.getCurrentLanguage()); // LOG
     }
 
     const ysdk = storage.getYSDKInstance();
