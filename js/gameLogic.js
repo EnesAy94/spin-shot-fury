@@ -22,8 +22,8 @@ export async function checkAndUnlockAchievement(achievementId) {
     const unlocked = state.unlockAchievement(achievementId);
     if (unlocked) {
         await storage.saveUnlockedAchievements(state.getUnlockedAchievementIds());
-        ui.showAchievementNotification(achievement.name, achievement.icon);
-
+        ui.showAchievementNotification(achievement.id, achievement.name, achievement.icon);
+        
         if (achievementId !== 'achievement_master') {
             checkMasterAchievement();
         }
@@ -234,7 +234,8 @@ export function checkLevelComplete() {
         state.cancelAnimationFrame();
         state.cancelSpinAnimationFrame();
 
-        ui.updateGameInfo(`Level ${state.getLevel()} Starting!`, 'lime');
+        const levelMessage = ui.getText('level_starting_message', { level: state.getLevel() });
+        ui.updateGameInfo(levelMessage, 'lime');
 
         setTimeout(() => {
             if (state.isGameOver() || state.isGameWon()) return;
@@ -294,16 +295,6 @@ export async function loadProgressAndInitialize() {
     state.setMusicVolume(savedData.musicVolume);
     state.setSfxVolume(savedData.sfxVolume);
     state.setIsMuted(savedData.isMuted);
-
-    if (savedData.currentLanguage && state.getCurrentLanguage() !== savedData.currentLanguage) {
-        // Eğer main() içinde bir dil set edildiyse ve storage'dan gelen farklı ve geçerliyse, storage'daki kazanır.
-        state.setCurrentLanguage(savedData.currentLanguage);
-        console.log("loadProgressAndInitialize: Language updated from savedData:", savedData.currentLanguage); // LOG
-    } else if (!savedData.currentLanguage) {
-        // Eğer storage'da dil yoksa, main() içinde set edilen dil (SDK/tarayıcı) geçerli kalır.
-        // Bu durumda state.setCurrentLanguage çağrılmaz.
-        console.log("loadProgressAndInitialize: No language in savedData, keeping current state language:", state.getCurrentLanguage()); // LOG
-    }
 
     const ysdk = storage.getYSDKInstance();
     if (ysdk) {

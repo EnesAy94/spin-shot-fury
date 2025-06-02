@@ -55,7 +55,6 @@ const musicVolumeValueDisplay = document.getElementById('music-volume-value');
 const sfxVolumeSlider = document.getElementById('sfx-volume');
 const sfxVolumeValueDisplay = document.getElementById('sfx-volume-value');
 const muteAllButton = document.getElementById('mute-all-button');
-const langButtons = document.querySelectorAll('.language-buttons .lang-button');
 const gameCompleteTitle = gameCompleteScreen?.querySelector('h2');
 const gameCompleteText = gameCompleteScreen?.querySelector('p:nth-of-type(1)');
 const removeAdsSection = document.getElementById('remove-ads-section');
@@ -521,7 +520,7 @@ export function populateAchievementsList() {
             const progressP = document.createElement('p');
             progressP.className = 'achievement-progress-text';
             const winsToShow = isUnlocked ? 10 : currentPerfectWins;
-            progressP.textContent = `Perfect Wins: ${winsToShow} / 10`;
+            progressP.textContent = getText('ach_ten_perfect_games_progress', { current: winsToShow, total: 10 });
             detailsDiv.appendChild(progressP);
         }
 
@@ -573,17 +572,6 @@ export function setupSettingsListeners() {
         muteAllButton.textContent = getText(newMuteState ? 'settings_unmute_button' : 'settings_mute_button');
         applyCurrentAudioSettingsWAA();
         saveAudioSettings();
-    });
-
-    langButtons.forEach(button => {
-        button.addEventListener('click', async (event) => {
-            const selectedLang = event.target.dataset.lang;
-            if (selectedLang && selectedLang !== state.getCurrentLanguage()) {
-                state.setCurrentLanguage(selectedLang);
-                await storage.saveLanguage(selectedLang);
-                updateAllTextsForLanguage();
-            }
-        });
     });
 
     if (removeAdsButton) {
@@ -670,12 +658,11 @@ const achievementQueue = [];
 let isNotificationShowing = false;
 let currentAchievementTimeoutId = null;
 
-export function showAchievementNotification(name, icon = '🏆', duration = 3000) {
+export function showAchievementNotification(achievementId, achievementNameFromConfig, achievementIcon = '🏆', duration = 3000) {
     if (!achievementNotificationEl || !achievementNotificationNameEl || !achievementNotificationIconEl) {
         return;
     }
-
-    achievementQueue.push({ name, icon, duration });
+    achievementQueue.push({ id: achievementId, name: achievementNameFromConfig, icon: achievementIcon, duration });
     if (!isNotificationShowing) {
         processAchievementQueue();
     }
@@ -685,15 +672,20 @@ function processAchievementQueue() {
     if (achievementQueue.length === 0 || isNotificationShowing) return;
 
     isNotificationShowing = true;
-    const { name, icon, duration } = achievementQueue.shift();
+
+    const achievementData = achievementQueue.shift();
 
     if (currentAchievementTimeoutId) {
         clearTimeout(currentAchievementTimeoutId);
     }
 
     achievementNotificationEl.classList.remove('show');
-    achievementNotificationIconEl.textContent = icon;
-    achievementNotificationNameEl.textContent = name;
+    achievementNotificationIconEl.textContent = achievementData.icon;
+
+    const achievementNameKey = `ach_${achievementData.id}_name`;
+    const translatedAchievementName = getText(achievementNameKey, {}, achievementData.name); 
+    achievementNotificationNameEl.textContent = translatedAchievementName;
+
     achievementNotificationEl.style.display = 'flex';
 
     requestAnimationFrame(() => {
@@ -712,7 +704,7 @@ function processAchievementQueue() {
             currentAchievementTimeoutId = null;
             processAchievementQueue();
         }, 500);
-    }, duration);
+    }, achievementData.duration || 3000); 
 }
 
 function updateSettingsUI() {
@@ -730,7 +722,7 @@ function updateSettingsUI() {
     muteAllButton.textContent = getText(state.getIsMuted() ? 'settings_unmute_button' : 'settings_mute_button');
 }
 
-function getText(key, replacements = {}) {
+export function getText(key, replacements = {}) {
     const currentLang = state.getCurrentLanguage();
     let text = translations[currentLang]?.[key] || translations.en?.[key] || key;
 
@@ -762,10 +754,6 @@ export function updateAllTextsForLanguage() {
     if (muteAllButton) {
         muteAllButton.textContent = getText(state.getIsMuted() ? 'settings_unmute_button' : 'settings_mute_button');
     }
-
-    langButtons.forEach(button => {
-        button.classList.toggle('active-lang', button.dataset.lang === currentLang);
-    });
 
     if (achievementsScreen?.style.display === 'flex') {
         populateAchievementsList();

@@ -140,6 +140,8 @@ export const translations = {
         'ads_purchase_failed': 'Purchase failed or was cancelled. Please try again.',
         'ads_purchase_error_sdk': 'Could not connect to the payment service. Please check your connection or try again later.',
         'ads_purchase_error_generic': 'An error occurred during the purchase. Please try again.',
+        'ach_ten_perfect_games_progress': 'Perfect Wins: {current} / {total}',
+        'level_starting_message': 'Level {level} Starting!',
     },
     'tr': { // Türkçe
         'armory_try_weapon_button': '1 Oyun Dene (Reklam)',
@@ -281,6 +283,8 @@ export const translations = {
         'ads_purchase_failed': 'Satın alma başarısız oldu veya iptal edildi. Lütfen tekrar deneyin.',
         'ads_purchase_error_sdk': 'Ödeme servisine bağlanılamadı. Lütfen bağlantınızı kontrol edin veya daha sonra tekrar deneyin.',
         'ads_purchase_error_generic': 'Satın alma sırasında bir hata oluştu. Lütfen tekrar deneyin.',
+        'ach_ten_perfect_games_progress': 'Kusursuz Galibiyet: {current} / {total}',
+        'level_starting_message': '{level}. Seviye Başlıyor!',
     },
     'ru': { // Русский
         'armory_try_weapon_button': 'Попробовать на 1 игру (Рекл.)',
@@ -422,5 +426,7 @@ export const translations = {
         'ads_purchase_failed': 'Покупка не удалась или была отменена. Пожалуйста, попробуйте еще раз.',
         'ads_purchase_error_sdk': 'Не удалось подключиться к платежному сервису. Проверьте ваше соединение или попробуйте позже.',
         'ads_purchase_error_generic': 'Во время покупки произошла ошибка. Пожалуйста, попробуйте еще раз.',
+        'ach_ten_perfect_games_progress': 'Безупречные победы: {current} / {total}',
+        'level_starting_message': 'Уровень {level} начинается!',
     }
 };

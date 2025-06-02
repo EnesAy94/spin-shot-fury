@@ -153,7 +153,7 @@ export function setCurrentLanguage(langCode) {
     if (['en', 'tr', 'ru'].includes(langCode)) {
         _currentLanguage = langCode;
     } else {
-        _currentLanguage = 'en';
+        _currentLanguage = 'tr';
     }
 }
 export function setCurrentGameMode(mode) {

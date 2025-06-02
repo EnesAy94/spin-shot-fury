@@ -27,7 +27,6 @@ const DEFAULT_PLAYER_DATA = {
     musicVolume: 0.5,
     sfxVolume: 0.5,
     isMuted: false,
-    currentLanguage: 'en'
 };
 
 // Retrieves player data from Yandex SDK or returns defaults.
@@ -61,16 +60,6 @@ async function savePlayerData(dataToSave) {
 // Loads game progress, merging server data with defaults.
 export async function loadGameProgress() {
     const data = await getPlayerData();
-    const defaultLang = 'en';
-
-    let finalLang = defaultLang;
-    if (data && ['en', 'tr', 'ru'].includes(data.currentLanguage)) {
-        finalLang = data.currentLanguage;
-        console.log("Storage: Loaded language from player data:", finalLang); // LOG EKLE
-    } else {
-        console.log("Storage: No valid language in player data, will use default or detected later:", defaultLang); // LOG EKLE
-    }
-
     return {
         winsPerWeapon: data.winsPerWeapon || DEFAULT_PLAYER_DATA.winsPerWeapon,
         unlockedWeaponIds: data.unlockedWeaponIds?.length > 0 ? data.unlockedWeaponIds : [...DEFAULT_PLAYER_DATA.unlockedWeaponIds],
@@ -82,7 +71,6 @@ export async function loadGameProgress() {
         musicVolume: data.musicVolume ?? DEFAULT_PLAYER_DATA.musicVolume,
         sfxVolume: data.sfxVolume ?? DEFAULT_PLAYER_DATA.sfxVolume,
         isMuted: data.isMuted ?? DEFAULT_PLAYER_DATA.isMuted,
-        currentLanguage: finalLang
     };
 }
 
@@ -148,11 +136,6 @@ export async function savePerfectGameStreakCount(count) {
 // Saves audio settings.
 export async function saveAudioSettings(settings) {
     return updateMultipleAndSave(settings);
-}
-
-// Saves selected language.
-export async function saveLanguage(langCode) {
-    return updateAndSave('currentLanguage', langCode);
 }
 
 //----------------------
