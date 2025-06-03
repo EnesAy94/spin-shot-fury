@@ -297,12 +297,6 @@ export async function loadProgressAndInitialize() {
     state.setIsMuted(savedData.isMuted);
 
     const ysdk = storage.getYSDKInstance();
-    if (ysdk) {
-        const adsShouldBeRemoved = await storage.checkAdsRemovedStatus(ysdk);
-        state.setAdsRemoved(adsShouldBeRemoved);
-    } else {
-        state.setAdsRemoved(false);
-    }
 
     const weaponId = savedData.unlockedWeaponIds.includes(savedData.selectedWeaponId)
         ? savedData.selectedWeaponId

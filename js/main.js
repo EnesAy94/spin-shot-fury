@@ -4,6 +4,7 @@
 import { setupArmoryListeners } from './armory.js';
 import * as ui from './ui.js';
 import * as state from './state.js';
+import { translations } from './translations.js';
 import * as storage from './storage.js';
 import * as gameLogic from './gameLogic.js';
 import * as playerAction from './playerAction.js';
@@ -13,7 +14,7 @@ import { NATIVE_WIDTH, NATIVE_HEIGHT, MENU_NATIVE_WIDTH, MENU_NATIVE_HEIGHT } fr
 
 function detectUserLanguage(ysdk) {
     console.log("Detecting language...");
-    let detectedLang = 'tr';
+    let detectedLang = 'en';
 
     if (ysdk && ysdk.environment && ysdk.environment.i18n && ysdk.environment.i18n.lang) {
         const yandexLang = ysdk.environment.i18n.lang.substring(0, 2).toLowerCase();
@@ -123,13 +124,6 @@ async function loadAllAssets() {
 
 // Displays an interstitial ad and handles audio pause/resume.
 async function showInterstitialAd(onAdClosedCallback) {
-    if (state.areAdsRemoved()) {
-        console.log("Ads are removed by user. Skipping Interstitial Ad.");
-        if (onAdClosedCallback) {
-            onAdClosedCallback(false);
-        }
-        return;
-    }
 
     if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showFullscreenAdv !== 'function') {
         console.warn("Yandex SDK or Adv module/showFullscreenAdv not available. Skipping Interstitial ad.");
@@ -198,23 +192,6 @@ async function showInterstitialAd(onAdClosedCallback) {
  * @param {function} [onError] 
  */
 export async function showRewardedVideoAd(onRewarded, onClose, onError) {
-    console.log("Attempting to show Rewarded Video Ad or grant reward directly.");
-
-    if (state.areAdsRemoved()) {
-        console.log("Ads are removed by user. Granting reward directly for Rewarded Video action.");
-        if (onRewarded) {
-            try {
-                onRewarded();
-            } catch (e) {
-                console.error("Error in onRewarded callback after direct grant:", e);
-                if (onError) onError(e);
-            }
-        }
-        if (onClose) {
-            onClose(false);
-        }
-        return;
-    }
 
     if (!ysdkInstance || !ysdkInstance.adv || typeof ysdkInstance.adv.showRewardedVideo !== 'function') {
         console.warn("Yandex SDK or Rewarded Video module/showRewardedVideo not available. Skipping ad.");
@@ -299,6 +276,11 @@ async function main() {
     const initialUserLang = detectUserLanguage(ysdkInstance);
     state.setCurrentLanguage(initialUserLang); // Dili doğrudan state'e set et
     console.log("Main: Language set to state:", state.getCurrentLanguage());
+
+    updateLoadingScreenText(state.getCurrentLanguage());
+
+    const appTitleKey = 'app_title';
+    document.title = translations[state.getCurrentLanguage()]?.[appTitleKey] || translations.en?.[appTitleKey] || 'SpinShot Fury';
 
     try {
         await loadAllAssets();
@@ -439,6 +421,17 @@ async function handleInGameExit() {
         state.setMenuActive(true);
         ui.showMainMenu();
     });
+}
+// Language change handler for updating UI texts.
+function updateLoadingScreenText(lang) {
+    const loadingTextEl = document.querySelector('#loading-screen .loading-text');
+    if (loadingTextEl) {
+        // translations objesine doğrudan erişim (main.js'e import edilmeli)
+        // import { translations } from './translations.js'; // main.js başına ekleyin
+        const key = 'loading_text';
+        let text = translations[lang]?.[key] || translations.en?.[key] || 'Loading...';
+        loadingTextEl.textContent = text;
+    }
 }
 
 // Triggers audio context and music on user interaction.
