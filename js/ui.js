@@ -22,7 +22,6 @@ export const achievementsListEl = document.getElementById('achievements-list');
 export const howToPlayScreen = document.getElementById('how-to-play-screen');
 export const settingsScreen = document.getElementById('settings-screen');
 export const gameHighScoreDisplayEl = document.getElementById('game-high-score-display');
-export const menuHighScoreDisplayEl = document.getElementById('menu-high-score-display');
 export const achievementNotificationEl = document.getElementById('achievement-notification');
 export const levelInfoEl = document.getElementById('level-info');
 export const scoreEl = document.getElementById('score');
@@ -57,6 +56,8 @@ const sfxVolumeValueDisplay = document.getElementById('sfx-volume-value');
 const muteAllButton = document.getElementById('mute-all-button');
 const gameCompleteTitle = gameCompleteScreen?.querySelector('h2');
 const gameCompleteText = gameCompleteScreen?.querySelector('p:nth-of-type(1)');
+const leaderboardLocalHighScoreEl = document.getElementById('leaderboard-local-high-score');
+const localHighScoreValueEl = document.getElementById('local-high-score-value');
 
 let currentConfirmCallback = null;
 let currentCancelCallback = null;
@@ -106,6 +107,7 @@ export function showLeaderboardScreen() {
     manageMusicWAA('menu');
     setCursor('default');
     loadAndDisplayLeaderboard();
+    updateLeaderboardLocalHighScore();
 }
 
 export function showMainMenu() {
@@ -121,7 +123,6 @@ export function showMainMenu() {
     hideGameCompleteScreen();
     manageMusicWAA('menu');
     setCursor('default');
-    updateMenuHighScore();
 }
 
 export function hideMainMenuAndShowGame() {
@@ -303,6 +304,9 @@ async function loadAndDisplayLeaderboard() {
         leaderboardErrorEl.style.display = 'block';
         leaderboardErrorEl.textContent = getText('leaderboard_error_text');
     }
+    finally {
+        updateLeaderboardLocalHighScore();
+    }
 }
 
 export function updateUI() {
@@ -311,11 +315,6 @@ export function updateUI() {
     if (gameHighScoreDisplayEl) gameHighScoreDisplayEl.textContent = getText('high_score_text', { score: state.getHighScore() });
 }
 
-export function updateMenuHighScore() {
-    if (menuHighScoreDisplayEl) {
-        menuHighScoreDisplayEl.textContent = getText('high_score_text', { score: state.getHighScore() });
-    }
-}
 
 export function updateAmmoDisplay() {
     if (!ammoDisplayEl) return;
@@ -352,6 +351,7 @@ export function updateGunImage(imageSrc) {
 export function setCursor(cursorType) {
     if (gameContainer) gameContainer.style.cursor = cursorType;
 }
+
 
 export function updateGameInfo(text, color = 'white') {
     const gameInfo = document.getElementById('game-info');
@@ -645,6 +645,23 @@ function updateSettingsUI() {
     muteAllButton.textContent = getText(state.getIsMuted() ? 'settings_unmute_button' : 'settings_mute_button');
 }
 
+function updateLeaderboardLocalHighScore() {
+    if (leaderboardLocalHighScoreEl && localHighScoreValueEl) {
+        const highScore = state.getHighScore();
+        if (highScore > 0) {
+            // Span içindeki metni data-translate ile almak yerine doğrudan getText ile set edelim
+            const labelSpan = leaderboardLocalHighScoreEl.querySelector('span[data-translate="your_local_high_score_is"]');
+            if (labelSpan) {
+                labelSpan.textContent = getText('your_local_high_score_is');
+            }
+            localHighScoreValueEl.textContent = highScore;
+            leaderboardLocalHighScoreEl.style.display = 'block'; // Görünür yap
+        } else {
+            leaderboardLocalHighScoreEl.style.display = 'none'; // Skor yoksa gizle
+        }
+    }
+}
+
 export function getText(key, replacements = {}) {
     const currentLang = state.getCurrentLanguage();
     let text = translations[currentLang]?.[key] || translations.en?.[key] || key;
@@ -671,7 +688,6 @@ export function updateAllTextsForLanguage() {
     });
 
     document.title = getText('app_title');
-    updateMenuHighScore();
     updateUI();
     updateTimerDisplay();
     if (muteAllButton) {
@@ -683,5 +699,8 @@ export function updateAllTextsForLanguage() {
     }
     if (armoryScreen?.style.display === 'flex') {
         updateArmoryDisplay();
+    }
+    if (leaderboardScreen?.style.display === 'flex') { 
+        updateLeaderboardLocalHighScore();
     }
 }

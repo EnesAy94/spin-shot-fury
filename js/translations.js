@@ -140,6 +140,8 @@ export const translations = {
         'ads_purchase_error_generic': 'An error occurred during the purchase. Please try again.',
         'ach_ten_perfect_games_progress': 'Perfect Wins: {current} / {total}',
         'level_starting_message': 'Level {level} Starting!',
+        'your_local_high_score_is': 'Your Personal Best:',
+        'level_cleared_message': 'Level {level} Cleared!',
     },
     'tr': { // Türkçe
         'armory_try_weapon_button': '1 Oyun Dene (Reklam)',
@@ -281,6 +283,8 @@ export const translations = {
         'ads_purchase_error_generic': 'Satın alma sırasında bir hata oluştu. Lütfen tekrar deneyin.',
         'ach_ten_perfect_games_progress': 'Kusursuz Galibiyet: {current} / {total}',
         'level_starting_message': '{level}. Seviye Başlıyor!',
+        'your_local_high_score_is': 'Kişisel Rekorun:',
+        'level_cleared_message': '{level}. Seviye Tamamlandı!',
     },
     'ru': { // Русский
         'armory_try_weapon_button': 'Попробовать на 1 игру (Рекл.)',
@@ -422,5 +426,7 @@ export const translations = {
         'ads_purchase_error_generic': 'Во время покупки произошла ошибка. Пожалуйста, попробуйте еще раз.',
         'ach_ten_perfect_games_progress': 'Безупречные победы: {current} / {total}',
         'level_starting_message': 'Уровень {level} начинается!',
+        'your_local_high_score_is': 'Ваш личный рекорд:',
+        'level_cleared_message': 'Уровень {level} пройден!',
     }
 };

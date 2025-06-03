@@ -30,8 +30,6 @@
             <div id="game-title-wrapper">
                 <h1 data-translate="app_title">SpinShot Fury</h1>
             </div>
-            <div id="menu-high-score-display" class="high-score-text" data-translate="high_score_text">High Score: 0
-            </div>
             <div class="menu-buttons">
                 <button id="play-button" data-translate="play_button">Play</button>
                 <button id="leaderboard-button" data-translate="leaderboard_button">Leaderboard</button>
@@ -47,6 +45,10 @@
     <div id="leaderboard-screen" style="display: none;">
         <div id="leaderboard-content">
             <h2 data-translate="leaderboard_title">Leaderboard</h2>
+            <div id="leaderboard-local-high-score" class="high-score-text" style="display: none; margin-bottom: 15px;">
+                <span data-translate="your_local_high_score_is">Your Local High Score:</span>
+                <span id="local-high-score-value">0</span>
+            </div>
             <div id="leaderboard-loading" style="display: none;" data-translate="leaderboard_loading_text">Loading...
             </div>
             <div id="leaderboard-error" style="display: none;" data-translate="leaderboard_error_text">Could not load

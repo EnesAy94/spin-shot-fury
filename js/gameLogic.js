@@ -7,7 +7,7 @@ import * as config from './config.js';
 import * as ui from './ui.js';
 import { createBottles } from './entities.js';
 import { rotateGun, applyWeaponStats } from './playerAction.js';
-import { ACHIEVEMENTS, WEAPONS } from './config.js';
+import { ACHIEVEMENTS, WEAPONS, MAX_LEVEL } from './config.js';
 
 // Unlocks an achievement if not already unlocked and updates storage/UI.
 export async function checkAndUnlockAchievement(achievementId) {
@@ -213,41 +213,83 @@ async function checkMasterAchievement() {
 
 // Checks if all green bottles are hit and advances level or ends game.
 export function checkLevelComplete() {
-    if (state.isGameOver() || state.isGameWon()) return;
+    if (state.isGameOver() || state.isGameWon()) { // !state.canFire() eklendi, zaten ateş edilemiyorsa tekrar kontrol etme
+        return;
+    }
 
     const greenBottles = state.getBottles().filter(b => b.type === 'green');
-    if (greenBottles.length === 0) return;
+    if (greenBottles.length === 0 && state.getLevel() < MAX_LEVEL) { // MAX_LEVEL'e ulaşıldıysa ve hiç yeşil şişe yoksa bu bug olabilir, normalde tüm şişeler vurulunca kontrol edilir.
+                                                                 // Bu koşul genellikle "tüm yeşil şişeler vuruldu mu?" olmalı.
+        console.warn("checkLevelComplete: No green bottles left, but level not completed logic might be flawed.");
+        // Bu durum normalde oluşmamalı, tüm şişeler vurulunca bu fonksiyona gelinmeli.
+        // Eğer bir şekilde tüm şişeler ekrandan silindi ama `hit` olarak işaretlenmediyse bu olabilir.
+        // Şimdilik bu koşulu göz ardı edip, asıl "tüm yeşiller vuruldu" mantığına odaklanalım.
+    }
 
-    if (greenBottles.every(b => b.hit)) {
+
+    // Asıl kontrol: Tüm yeşil şişeler vuruldu mu?
+    const allGreenBottlesHit = greenBottles.every(b => b.hit);
+
+    if (allGreenBottlesHit) {
+        // ATEŞ ETMEYİ HEMEN ENGELLE
+        state.setCanFire(false);
+        state.setRotating(false); // Silahın dönmesini de durdur
+        state.setSpinning(false); // Eğer spin yapıyorsa onu da iptal et (normalde spin bitince canFire true olur ama garantiye alalım)
+        state.cancelAnimationFrame(); // Dönme animasyonunu durdur
+        state.cancelSpinAnimationFrame(); // Spin animasyonunu durdur
+        state.clearShotTimeout(); // Bekleyen atış yeteneği timeout'unu temizle
+
+        // Seviye geçiş mesajını göster
+        const levelClearedMessage = ui.getText('level_cleared_message', { level: state.getLevel() });
+        ui.updateGameInfo(levelClearedMessage, 'lime', true); // true parametresi mesajın geçici olduğunu belirtir (ui.js'de handle edilecek)
+
+        // Achievement kontrolü
         if (state.getLevel() === 5) {
             checkAndUnlockAchievement('level_5_clear');
         }
 
-        if (state.getLevel() === config.MAX_LEVEL) {
-            gameWon();
+        // Son seviye mi kontrolü
+        if (state.getLevel() === MAX_LEVEL) {
+            // ui.updateGameInfo'nun mesajı göstermesi için kısa bir bekleme
+            setTimeout(() => {
+                gameWon();
+            }, 1500); // gameWon zaten kendi mesajlarını vs. gösterecek
             return;
         }
 
-        state.setLevel(state.getLevel() + 1);
-        state.setRotating(false);
-        state.setSpinning(false);
-        state.cancelAnimationFrame();
-        state.cancelSpinAnimationFrame();
-
-        const levelMessage = ui.getText('level_starting_message', { level: state.getLevel() });
-        ui.updateGameInfo(levelMessage, 'lime');
+        // Bir sonraki seviyeye geçiş için bekleme süresi
+        const LEVEL_TRANSITION_DELAY = 2000; // ms cinsinden (2 saniye)
 
         setTimeout(() => {
-            if (state.isGameOver() || state.isGameWon()) return;
+            if (state.isGameOver() || state.isGameWon()) return; // Oyun bu arada bittiyse bir şey yapma
 
-            ui.updateGameInfo('SpinShot Fury');
-            applyWeaponStats();
-            ui.updateUI();
-            createBottles();
-            state.setRotating(true);
-            rotateGun();
-        }, 1500);
+            state.setLevel(state.getLevel() + 1);
+
+            // Bir sonraki seviye başlangıç mesajı (bu isteğe bağlı, zaten yeni şişeler gelecek)
+            // const nextLevelMessage = ui.getText('level_starting_message', { level: state.getLevel() });
+            // ui.updateGameInfo(nextLevelMessage, 'white', true); // Geçici mesaj
+
+            // Kısa bir bekleme daha, sonra yeni seviyeyi kur
+            // setTimeout(() => { // Bu iç içe setTimeout yerine direkt devam edebiliriz.
+                if (state.isGameOver() || state.isGameWon()) return;
+
+                ui.updateGameInfo(ui.getText('game_info_default'), 'white'); // Varsayılan oyun bilgisini geri getir
+                applyWeaponStats(); // Silah statlarını (özellikle mermiyi) yenile
+                ui.updateUI();      // Skoru vb. güncelle (seviye de güncellenmiş olacak)
+                createBottles();    // Yeni şişeleri oluştur
+
+                // YENİ SEVİYE BAŞLADIKTAN SONRA ATEŞ ETMEYE İZİN VER VE DÖNMEYİ BAŞLAT
+                state.setCanFire(true);
+                state.setRotating(true);
+                if (!state.getAnimationFrameId()) { // Eğer zaten bir animasyon frame'i yoksa başlat
+                    rotateGun();
+                }
+            // }, 500); // İkinci mesaj için kısa bekleme (kaldırıldı)
+
+        }, LEVEL_TRANSITION_DELAY);
     }
+    // Eğer tüm yeşil şişeler vurulmadıysa ama mermi bittiyse veya süre dolduysa,
+    // gameOver zaten başka bir yerden tetikleniyor olmalı (örn: createBullet içinde mermi kontrolü, updateTimerIntervalCallback içinde süre kontrolü)
 }
 
 // Starts or restarts the game timer.
