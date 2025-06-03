@@ -142,6 +142,7 @@ export const translations = {
         'level_starting_message': 'Level {level} Starting!',
         'your_local_high_score_is': 'Your Personal Best:',
         'level_cleared_message': 'Level {level} Cleared!',
+        'armory_trial_active_button': 'Trial Active',
     },
     'tr': { // Türkçe
         'armory_try_weapon_button': '1 Oyun Dene (Reklam)',
@@ -285,6 +286,7 @@ export const translations = {
         'level_starting_message': '{level}. Seviye Başlıyor!',
         'your_local_high_score_is': 'Kişisel Rekorun:',
         'level_cleared_message': '{level}. Seviye Tamamlandı!',
+        'armory_trial_active_button': 'Deneme Aktif',
     },
     'ru': { // Русский
         'armory_try_weapon_button': 'Попробовать на 1 игру (Рекл.)',
@@ -428,5 +430,6 @@ export const translations = {
         'level_starting_message': 'Уровень {level} начинается!',
         'your_local_high_score_is': 'Ваш личный рекорд:',
         'level_cleared_message': 'Уровень {level} пройден!',
+        'armory_trial_active_button': 'Пробный режим активен',
     }
 };

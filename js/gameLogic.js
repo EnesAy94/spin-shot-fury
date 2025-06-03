@@ -23,7 +23,7 @@ export async function checkAndUnlockAchievement(achievementId) {
     if (unlocked) {
         await storage.saveUnlockedAchievements(state.getUnlockedAchievementIds());
         ui.showAchievementNotification(achievement.id, achievement.name, achievement.icon);
-        
+
         if (achievementId !== 'achievement_master') {
             checkMasterAchievement();
         }
@@ -38,6 +38,7 @@ export async function checkAndUnlockAchievement(achievementId) {
 
 // Resets game state and UI for a new game.
 export function resetGame() {
+    state.clearWeaponOnAdTrialCooldown();
     state.setGameOver(false);
     state.setGameWon(false);
     state.setLevel(1);
@@ -85,6 +86,7 @@ export function startGame() {
 export async function gameOver(reason) {
     if (state.isGameOver() || state.isGameWon()) return;
 
+    state.clearWeaponOnAdTrialCooldown();
     state.setGameOver(true);
     if (state.getHasMissedShotInSession() && state.getPerfectGameStreakCount() > 0) {
         state.resetPerfectGameStreakCount();
@@ -124,6 +126,7 @@ export async function gameOver(reason) {
 export async function gameWon() {
     if (state.isGameWon() || state.isGameOver()) return;
 
+    state.clearWeaponOnAdTrialCooldown();
     state.setGameWon(true);
     stopTimer();
 
@@ -219,7 +222,7 @@ export function checkLevelComplete() {
 
     const greenBottles = state.getBottles().filter(b => b.type === 'green');
     if (greenBottles.length === 0 && state.getLevel() < MAX_LEVEL) { // MAX_LEVEL'e ulaşıldıysa ve hiç yeşil şişe yoksa bu bug olabilir, normalde tüm şişeler vurulunca kontrol edilir.
-                                                                 // Bu koşul genellikle "tüm yeşil şişeler vuruldu mu?" olmalı.
+        // Bu koşul genellikle "tüm yeşil şişeler vuruldu mu?" olmalı.
         console.warn("checkLevelComplete: No green bottles left, but level not completed logic might be flawed.");
         // Bu durum normalde oluşmamalı, tüm şişeler vurulunca bu fonksiyona gelinmeli.
         // Eğer bir şekilde tüm şişeler ekrandan silindi ama `hit` olarak işaretlenmediyse bu olabilir.
@@ -271,19 +274,19 @@ export function checkLevelComplete() {
 
             // Kısa bir bekleme daha, sonra yeni seviyeyi kur
             // setTimeout(() => { // Bu iç içe setTimeout yerine direkt devam edebiliriz.
-                if (state.isGameOver() || state.isGameWon()) return;
+            if (state.isGameOver() || state.isGameWon()) return;
 
-                ui.updateGameInfo(ui.getText('game_info_default'), 'white'); // Varsayılan oyun bilgisini geri getir
-                applyWeaponStats(); // Silah statlarını (özellikle mermiyi) yenile
-                ui.updateUI();      // Skoru vb. güncelle (seviye de güncellenmiş olacak)
-                createBottles();    // Yeni şişeleri oluştur
+            ui.updateGameInfo(ui.getText('game_info_default'), 'white'); // Varsayılan oyun bilgisini geri getir
+            applyWeaponStats(); // Silah statlarını (özellikle mermiyi) yenile
+            ui.updateUI();      // Skoru vb. güncelle (seviye de güncellenmiş olacak)
+            createBottles();    // Yeni şişeleri oluştur
 
-                // YENİ SEVİYE BAŞLADIKTAN SONRA ATEŞ ETMEYE İZİN VER VE DÖNMEYİ BAŞLAT
-                state.setCanFire(true);
-                state.setRotating(true);
-                if (!state.getAnimationFrameId()) { // Eğer zaten bir animasyon frame'i yoksa başlat
-                    rotateGun();
-                }
+            // YENİ SEVİYE BAŞLADIKTAN SONRA ATEŞ ETMEYE İZİN VER VE DÖNMEYİ BAŞLAT
+            state.setCanFire(true);
+            state.setRotating(true);
+            if (!state.getAnimationFrameId()) { // Eğer zaten bir animasyon frame'i yoksa başlat
+                rotateGun();
+            }
             // }, 500); // İkinci mesaj için kısa bekleme (kaldırıldı)
 
         }, LEVEL_TRANSITION_DELAY);

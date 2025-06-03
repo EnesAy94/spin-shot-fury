@@ -965,7 +965,7 @@ body {
     font-size: clamp(0.875rem, 3vw, 1.2rem);
     font-family: 'Oswald', sans-serif;
     color: #f0ad4e;
-    background: linear-gradient(90deg, rgba(0, 0, 0, 0.7), rgba(255, 215, 0, 0.3));
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.7), rgba(23, 20, 0, 0.482));
     padding: clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 3vw, 1.25rem);
     border-radius: clamp(0.5rem, 2vw, 0.625rem);
     min-height: 3em;

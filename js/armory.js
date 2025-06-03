@@ -113,6 +113,7 @@ export function handleTryWeaponWithAd(weaponId, weaponName) {
                         applyWeaponStats(); 
                         ui.updateArmoryDisplay(); 
                         ui.showGeneralNotification('weapon_trial_activated_message', '🔫', 3000, { weaponName: weaponName });
+                        state.setWeaponOnAdTrialCooldown(weaponId);
                         ui.showMainMenu(); 
                         state.setCurrentGameMode(state.getCurrentGameMode() || 'normal'); 
                         gameLogic.startGame();

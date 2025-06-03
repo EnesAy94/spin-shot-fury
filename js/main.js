@@ -411,6 +411,8 @@ function setupEventListeners() {
 // Handles in-game exit by stopping game loops and showing main menu.
 async function handleInGameExit() {
     await showInterstitialAd(wasShown => {
+        state.clearFullTrialWeaponState();
+        state.clearWeaponOnAdTrialCooldown();
         state.setGameOver(true);
         gameLogic.stopTimer();
         state.setRotating(false);
@@ -418,6 +420,7 @@ async function handleInGameExit() {
         state.cancelAnimationFrame();
         state.cancelSpinAnimationFrame();
         state.clearShotTimeout();
+        playerAction.applyWeaponStats();
         state.setMenuActive(true);
         ui.showMainMenu();
     });

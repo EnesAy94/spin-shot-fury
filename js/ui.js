@@ -454,13 +454,18 @@ export function updateArmoryDisplay() {
         unlockBtnEl.textContent = getText('armory_unlock_button_text');
     }
 
+    const weaponOnCooldownId = state.getWeaponOnAdTrialCooldownId();
     const isTrialActiveForThisWeapon = state.isTrialWeaponActive() && state.getTrialWeaponId() === weaponData.id;
+
     selectBtnEl.style.display = isUnlocked || isTrialActiveForThisWeapon ? 'block' : 'none';
     if (isUnlocked || isTrialActiveForThisWeapon) {
+        selectBtnEl.style.display = 'block';
         const isSelected = weaponData.id === selectedWeaponId;
         selectBtnEl.disabled = isSelected;
         selectBtnEl.textContent = isSelected ? getText('armory_selected_button_text') : getText('armory_select_button_text');
         selectBtnEl.dataset.weaponId = weaponData.id;
+    } else {
+        selectBtnEl.style.display = 'none';
     }
 
     const prevBtn = document.getElementById('armory-prev-button');
@@ -470,12 +475,23 @@ export function updateArmoryDisplay() {
 
     const isAwm = weaponData.id === 'awm';
     const isDefaultWeapon = weaponData.unlockWins === 0 && !weaponData.unlocksWith;
+
     if (!isUnlocked && !isAwm && !isDefaultWeapon) {
-        tryWeaponBtnEl.style.display = 'block';
-        tryWeaponBtnEl.dataset.weaponId = weaponData.id;
-        tryWeaponBtnEl.dataset.weaponName = nameEl.textContent;
-        tryWeaponBtnEl.onclick = () => armory.handleTryWeaponWithAd(tryWeaponBtnEl.dataset.weaponId, tryWeaponBtnEl.dataset.weaponName);
+        // Eğer bu silah için bir deneme zaten aktifse (yani reklam izlenmiş ve o oyun için geçerliyse)
+        // VEYA reklam izlenmiş ve bir oyunluk cooldown'daysa, "Reklam İzle ve Dene" butonunu gizle.
+        if (isTrialActiveForThisWeapon || weaponData.id === weaponOnCooldownId) {
+            tryWeaponBtnEl.style.display = 'none'; // Butonu tamamen gizle
+        } else {
+            // Silah kilitli, deneme aktif değil ve cooldown'da değil. Normal "Dene" butonunu göster.
+            tryWeaponBtnEl.style.display = 'block';
+            tryWeaponBtnEl.disabled = false;
+            tryWeaponBtnEl.textContent = getText('armory_try_weapon_button');
+            tryWeaponBtnEl.dataset.weaponId = weaponData.id;
+            tryWeaponBtnEl.dataset.weaponName = nameEl.textContent; // nameEl.textContent yukarıda tanımlanmış olmalı.
+            tryWeaponBtnEl.onclick = () => armory.handleTryWeaponWithAd(tryWeaponBtnEl.dataset.weaponId, tryWeaponBtnEl.dataset.weaponName);
+        }
     } else {
+        // Silah kilitli değilse (unlocked), AWM ise veya varsayılan ise "Dene" butonunu gizle.
         tryWeaponBtnEl.style.display = 'none';
     }
 }
@@ -606,7 +622,7 @@ function processAchievementQueue() {
     achievementNotificationIconEl.textContent = achievementData.icon;
 
     const achievementNameKey = `ach_${achievementData.id}_name`;
-    const translatedAchievementName = getText(achievementNameKey, {}, achievementData.name); 
+    const translatedAchievementName = getText(achievementNameKey, {}, achievementData.name);
     achievementNotificationNameEl.textContent = translatedAchievementName;
 
     achievementNotificationEl.style.display = 'flex';
@@ -627,7 +643,7 @@ function processAchievementQueue() {
             currentAchievementTimeoutId = null;
             processAchievementQueue();
         }, 500);
-    }, achievementData.duration || 3000); 
+    }, achievementData.duration || 3000);
 }
 
 function updateSettingsUI() {
@@ -700,7 +716,7 @@ export function updateAllTextsForLanguage() {
     if (armoryScreen?.style.display === 'flex') {
         updateArmoryDisplay();
     }
-    if (leaderboardScreen?.style.display === 'flex') { 
+    if (leaderboardScreen?.style.display === 'flex') {
         updateLeaderboardLocalHighScore();
     }
 }

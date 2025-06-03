@@ -42,6 +42,7 @@ let _usedAmmoRewardThisGame = false;
 let _usedRedBottleRewardThisGame = false;
 let _trialWeaponId = null;
 let _isTrialWeaponActive = false;
+let _weaponOnAdTrialCooldownId = null;
 
 // Getters
 export function getTrialWeaponId() { return _trialWeaponId; }
@@ -87,6 +88,7 @@ export function getSfxVolume() { return _sfxVolume; }
 export function getIsMuted() { return _isMuted; }
 export function getCurrentLanguage() { return _currentLanguage; }
 export function getCurrentGameMode() { return _currentGameMode; }
+export function getWeaponOnAdTrialCooldownId() { return _weaponOnAdTrialCooldownId; }
 
 // Setters and Updaters
 export function setUsedRedBottleRewardThisGame(value) { _usedRedBottleRewardThisGame = value; }
@@ -176,11 +178,19 @@ export function setSelectedWeaponId(weaponId) {
             _rotationSpeed = weapon.rotationSpeed;
         }
         if (isUnlocked && _trialWeaponId && _trialWeaponId !== weaponId) {
-            clearTrialWeaponState();
+            clearFullTrialWeaponState();
         }
         return true;
     }
     return false;
+}
+
+export function setWeaponOnAdTrialCooldown(weaponId) {
+    _weaponOnAdTrialCooldownId = weaponId;
+}
+
+export function clearWeaponOnAdTrialCooldown() {
+    _weaponOnAdTrialCooldownId = null;
 }
 
 // Timer and Animation ID Management
