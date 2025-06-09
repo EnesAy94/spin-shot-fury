@@ -240,6 +240,7 @@ export function hideModeSelectScreen() {
 // UI Updates
 async function loadAndDisplayLeaderboard() {
     if (!leaderboardEntriesEl || !leaderboardLoadingEl || !leaderboardErrorEl || !leaderboardPlayerRankEl) {
+        console.warn("Leaderboard UI elements not found.");
         return;
     }
 
@@ -249,24 +250,28 @@ async function loadAndDisplayLeaderboard() {
     leaderboardPlayerRankEl.style.display = 'none';
 
     const ysdk = storage.getYSDKInstance();
-    if (!ysdk?.getLeaderboards) {
+    console.log("YSK Instance in loadAndDisplayLeaderboard:", ysdk);
+
+    if (!ysdk || !ysdk.leaderboards) {
+        console.error("Yandex SDK or leaderboards module not available.");
         leaderboardLoadingEl.style.display = 'none';
         leaderboardErrorEl.style.display = 'block';
         leaderboardErrorEl.textContent = getText('leaderboard_error_text');
         return;
     }
+    console.log("YSK Leaderboards Object:", ysdk.leaderboards); // Kontrol 2
+    const leaderboardsManager = ysdk.leaderboards;
+    console.log("Leaderboards Manager Object:", leaderboardsManager); // Kontrol 3
+
 
     try {
-        const leaderboardName = 'highScoresTable'; // Replace with actual leaderboard name
-        const leaderboardsManager = await ysdk.getLeaderboards();
-        if (!leaderboardsManager?.getLeaderboardEntries) {
-            throw new Error('getLeaderboardEntries method missing');
-        }
+        const leaderboardName = 'highScoresTable';
+        console.log("Does leaderboardsManager have getLeaderboardEntries?:", typeof leaderboardsManager.getEntries);
 
-        const res = await leaderboardsManager.getLeaderboardEntries(leaderboardName, {
+        const res = await leaderboardsManager.getEntries(leaderboardName, {
             includeUser: true,
-            quantityAround: 5,
-            quantityTop: 10
+            quantityAround: 2,
+            quantityTop: 50
         });
 
         leaderboardLoadingEl.style.display = 'none';
@@ -297,9 +302,12 @@ async function loadAndDisplayLeaderboard() {
                 playerRankValueEl.textContent = getText('N/A');
                 playerScoreValueEl.textContent = localHighScore;
                 leaderboardPlayerRankEl.style.display = 'block';
+            } else {
+                leaderboardPlayerRankEl.style.display = 'none';
             }
         }
     } catch (error) {
+        console.error("Error loading or displaying leaderboard:", error);
         leaderboardLoadingEl.style.display = 'none';
         leaderboardErrorEl.style.display = 'block';
         leaderboardErrorEl.textContent = getText('leaderboard_error_text');

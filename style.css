@@ -973,6 +973,7 @@ body {
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
     transition: transform 0.3s ease;
     animation: itemFadeIn 0.6s ease-out forwards;
+    white-space: pre-line;
 }
 
 .progress-info:hover {
@@ -991,11 +992,6 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     animation: cardFadeIn 0.6s ease-out forwards;
-}
-
-.weapon-display:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
 }
 
 .nav-arrow {
@@ -1045,11 +1041,6 @@ body {
 #armory-weapon-image.locked {
     filter: grayscale(90%) brightness(0.5) drop-shadow(0 0 5px rgba(0, 0, 0, 0.6));
     animation: none;
-}
-
-#armory-weapon-image:hover:not(.locked) {
-    transform: scale(1.08);
-    filter: drop-shadow(0 0 18px rgba(255, 215, 0, 0.9));
 }
 
 @keyframes weaponPulse {
@@ -2621,6 +2612,9 @@ input[type=range]::-ms-fill-upper {
 #leaderboard-content h2,
 #leaderboard-table th,
 #leaderboard-table td,
+#leaderboard-player-rank,
+#leaderboard-local-high-score #local-high-score-value,
+#leaderboard-local-high-score span[data-translate="your_local_high_score_is"],
 #game-complete-screen h2,
 #game-complete-screen p,
 .modal-content h3,
@@ -2662,4 +2656,17 @@ button,
     -o-user-drag: none;       
     -webkit-touch-callout: none;
     cursor: default; 
+}
+
+@media (hover: hover) and (pointer: fine) {
+.weapon-display:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+}
+
+#armory-weapon-image:hover:not(.locked) {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 18px rgba(255, 215, 0, 0.9));
+}
+
 }

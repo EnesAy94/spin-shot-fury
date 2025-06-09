@@ -110,20 +110,19 @@ export async function saveUnlockedAchievements(achievementIds) {
 
 // Saves high score to player data and leaderboard.
 export async function saveHighScore(newHighScore) {
-    const localSaveSuccess = await updateAndSave('highScore', newHighScore);
-    const leaderboardName = 'highScoresTable'; // Replace with actual leaderboard name
+    const localSaveSuccess = await updateAndSave('highScore', newHighScore); // Bu lokal kayıt
+    const leaderboardName = 'highScoresTable'; // Liderlik tablosu adınız
 
-    if (_ysdk?.getLeaderboards) {
+    if (_ysdk?.leaderboards) { // ysdk.leaderboards kontrolü daha iyi
         try {
-            const leaderboardsManager = _ysdk.getLeaderboards();
-            if (leaderboardsManager.setScore) {
-                await leaderboardsManager.setScore(leaderboardName, newHighScore);
-            } else if (leaderboardsManager.setLeaderboardScore) {
-                await leaderboardsManager.setLeaderboardScore(leaderboardName, newHighScore);
-            }
+            // ÖNEMLİ: leaderboards objesi üzerinden setScore çağrılmalı
+            await _ysdk.leaderboards.setScore(leaderboardName, newHighScore);
+            console.log(`Score ${newHighScore} successfully sent to Yandex Leaderboard: ${leaderboardName}`); // Başarı logu
         } catch (error) {
-            // Error handling is minimal to avoid disrupting gameplay
+            console.error(`Failed to send score to Yandex Leaderboard: ${leaderboardName}`, error); // Hata logu
         }
+    } else {
+        console.warn("Yandex SDK leaderboards module not available, score not sent to Yandex.");
     }
     return localSaveSuccess;
 }

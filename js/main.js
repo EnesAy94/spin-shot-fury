@@ -313,7 +313,7 @@ async function initGame() {
     if (loadingScreen) loadingScreen.style.display = 'none';
     ui.showMainMenu();
 
-    await showInterstitialAd(async wasShown => {
+ /*   await showInterstitialAd(async wasShown => {
         if (ysdkInstance?.features?.LoadingAPI) {
             try {
                 await ysdkInstance.features.LoadingAPI.ready();
@@ -321,7 +321,16 @@ async function initGame() {
                 console.error('Error calling LoadingAPI.ready():', error);
             }
         }
-    });
+    }); */
+
+        if (ysdkInstance?.features?.LoadingAPI) {
+        try {
+            await ysdkInstance.features.LoadingAPI.ready();
+            console.log("LoadingAPI.ready() called after main menu shown (initial ad removed).");
+        } catch (error) {
+            console.error('Error calling LoadingAPI.ready():', error);
+        }
+    }
 }
 
 // Sets up event listeners for game interactions and UI navigation.

@@ -341,14 +341,54 @@ export async function loadProgressAndInitialize() {
     state.setSfxVolume(savedData.sfxVolume);
     state.setIsMuted(savedData.isMuted);
 
-    const ysdk = storage.getYSDKInstance();
-
     const weaponId = savedData.unlockedWeaponIds.includes(savedData.selectedWeaponId)
         ? savedData.selectedWeaponId
         : config.WEAPONS[0].id;
     state.setSelectedWeaponId(weaponId);
 
     applyWeaponStats();
+
+    const localHighScore = state.getHighScore();
+    const ysdk = storage.getYSDKInstance();
+
+    const hasSyncedInitialHighScore = localStorage.getItem('initialHighScoreSynced_highScoresTable');
+
+    if (localHighScore > 0 && !hasSyncedInitialHighScore && ysdk && ysdk.leaderboards) {
+        console.log(`Attempting to sync initial local high score: ${localHighScore} to Yandex.`);
+        try {
+            const playerEntry = await ysdk.leaderboards.getPlayerEntry('highScoresTable');
+            const yandexScore = playerEntry ? playerEntry.score : 0;
+
+            if (localHighScore > yandexScore) {
+                await ysdk.leaderboards.setScore('highScoresTable', localHighScore);
+                console.log(`Initial local high score ${localHighScore} synced to Yandex (was ${yandexScore}).`);
+                localStorage.setItem('initialHighScoreSynced_highScoresTable', 'true');
+            } else {
+                console.log(`Local high score ${localHighScore} is not higher than Yandex score ${yandexScore}. No sync needed.`);
+                localStorage.setItem('initialHighScoreSynced_highScoresTable', 'true');
+            }
+        } catch (error) {
+
+            const playerNotInLeaderboardError = error.message?.toLowerCase().includes('player not in leaderboard') ||
+                error.message?.toLowerCase().includes('player is not present in leaderboard') ||
+                error.message?.toLowerCase().includes('entry not found') ||
+                error.code === 'LEADERBOARD_PLAYER_NOT_IN_LEADERBOARD';
+
+            if (error.code === 'LEADERBOARD_PLAYER_NOT_IN_LEADERBOARD' || error.message?.includes('player not in leaderboard')) {
+                try {
+                    await ysdk.leaderboards.setScore('highScoresTable', localHighScore);
+                    console.log(`Initial local high score ${localHighScore} synced to Yandex (player was not in leaderboard).`);
+                    localStorage.setItem('initialHighScoreSynced_highScoresTable', 'true');
+                } catch (sendError) {
+                    console.error("Error trying to send initial local high score to Yandex after player not found:", sendError);
+                }
+            } else {
+                console.error("Error trying to sync initial local high score to Yandex:", error);
+            }
+        }
+    } else if (localHighScore > 0 && hasSyncedInitialHighScore) {
+        console.log("Initial high score sync already performed for highScoresTable.");
+    }
 }
 
 // Pauses game for ad opportunity, stopping timer and animations.
