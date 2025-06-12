@@ -640,10 +640,6 @@ body {
     width: 30%;
 }
 
-#leaderboard-table tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
 #leaderboard-player-rank {
     margin-top: clamp(0.5rem, 2vw, 1rem);
     margin-bottom: clamp(1rem, 3vw, 1.5rem);
@@ -1382,11 +1378,6 @@ body {
     border: 2px solid #FFD700;
     background: linear-gradient(145deg, rgba(100, 100, 100, 0.9), rgba(60, 60, 60, 0.8));
     box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
-}
-
-.achievement-card.unlocked:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
 }
 
 .achievement-icon {
@@ -2667,6 +2658,15 @@ button,
 #armory-weapon-image:hover:not(.locked) {
     transform: scale(1.08);
     filter: drop-shadow(0 0 18px rgba(255, 215, 0, 0.9));
+}
+
+.achievement-card.unlocked:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+#leaderboard-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 }
